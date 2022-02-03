@@ -4784,6 +4784,21 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info->m_privileged = privileged.asBool();
 		}
+		const Json::Value& pidns = container["pidns"];
+		if(check_json_val_is_convertible(pidns, Json::stringValue, "pidns"))
+		{
+			container_info->m_pidns = pidns.asString();
+		}
+		const Json::Value& netns = container["netns"];
+		if(check_json_val_is_convertible(netns, Json::stringValue, "netns"))
+		{
+			container_info->m_netns = netns.asString();
+		}
+		const Json::Value& ipcns = container["ipcns"];
+		if(check_json_val_is_convertible(ipcns, Json::stringValue, "ipcns"))
+		{
+			container_info->m_ipcns = ipcns.asString();
+		}
 		const Json::Value& lookup_state = container["lookup_state"];
 		if(check_json_val_is_convertible(lookup_state, Json::uintValue, "lookup_state"))
 		{

@@ -167,6 +167,9 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagetag"] = container_info.m_imagetag;
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
+	container["pidns"] = container_info.m_pidns;
+	container["netns"] = container_info.m_netns;
+	container["ipcns"] = container_info.m_ipcns;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 	container["lookup_state"] = static_cast<int>(container_info.m_lookup_state);
 	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
