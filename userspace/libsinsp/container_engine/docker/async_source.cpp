@@ -780,6 +780,24 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 		container.m_privileged = privileged.asBool();
 	}
 
+	const Json::Value& pidns = host_config_obj["PidMode"];
+	if(!pidns.isNull() && pidns.isString())
+	{
+		container.m_pidns = pidns.asString();
+	}
+	const Json::Value& netns = host_config_obj["NetworkMode"];
+	if(!netns.isNull() && netns.isString())
+	{
+		container.m_netns = netns.asString();
+	}
+	const Json::Value& ipcns = host_config_obj["IpcMode"];
+	if(!ipcns.isNull() && ipcns.isString())
+	{
+		container.m_ipcns = ipcns.asString();
+	}
+
+	cout << "************ " << container.m_pidns + " " + container.m_netns + " " + container.m_ipcns << endl;
+
 	parse_json_mounts(root["Mounts"], container.m_mounts);
 
 	container.m_size_rw_bytes = root["SizeRw"].asInt64();
