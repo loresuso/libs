@@ -406,6 +406,46 @@ uint32_t cri_interface::get_container_ip(const std::string &container_id)
 	return 0;
 }
 
+std::unordered_map<std::string, std::string> cri_interface::get_container_namespaces(const std::string &container_id)
+{
+	std::unordered_map<std::string, std::string> ns_map;
+	runtime::v1alpha2::ListContainersRequest req;
+	runtime::v1alpha2::ListContainersResponse resp;
+	auto filter = req.mutable_filter();
+	filter->set_id(container_id);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = m_cri->ListContainers(&context, req, &resp);
+
+	if(resp.containers_size() != 1)
+	{
+		return ns_map;
+	}
+
+	const auto &cri_container = resp.containers(0); 
+
+	runtime::v1alpha2::PodSandboxStatusRequest pod_req;
+	runtime::v1alpha2::PodSandboxStatusResponse pod_resp;
+	pod_req.set_pod_sandbox_id(cri_container.pod_sandbox_id());
+	pod_req.set_verbose(true);
+	grpc::ClientContext pod_context;
+	pod_context.set_deadline(deadline);
+	status = m_cri->PodSandboxStatus(&pod_context, pod_req, &pod_resp);
+
+	const auto &namespaces_options = pod_resp.status().linux().namespaces().options();
+	const auto &pidns = namespaces_options.pid();
+	const auto &netns = namespaces_options.network();
+	const auto &ipcns = namespaces_options.ipc();
+
+	const auto *descriptor = runtime::v1alpha2::NamespaceMode_descriptor();
+	ns_map["pid"] = descriptor->FindValueByNumber(pidns)->name();
+	ns_map["net"] = descriptor->FindValueByNumber(netns)->name();
+	ns_map["ipc"] = descriptor->FindValueByNumber(ipcns)->name();
+
+	return ns_map;
+}
+
 std::string cri_interface::get_container_image_id(const std::string &image_ref)
 {
 	runtime::v1alpha2::ListImagesRequest req;

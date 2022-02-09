@@ -147,6 +147,8 @@ public:
 	 */
 	uint32_t get_container_ip(const std::string &container_id);
 
+	std::unordered_map<std::string, std::string> get_container_namespaces(const std::string &container_id);
+
 	/**
 	 * @brief get image id info from CRI
 	 * @param image_ref the image ref from container metadata
