@@ -149,6 +149,13 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 		{
 			container.m_imageid = m_cri->get_container_image_id(resp_container.image_ref());
 		}
+		if(container.m_pidns.empty() && container.m_netns.empty() && container.m_ipcns.empty())
+		{
+			auto ns_map = m_cri->get_container_namespaces(container.m_id);
+			container.m_pidns = ns_map["pid"];
+			container.m_netns = ns_map["net"];
+			container.m_ipcns = ns_map["ipc"];
+		}
 	}
 
 	return true;
