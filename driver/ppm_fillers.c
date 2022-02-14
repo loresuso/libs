@@ -22,6 +22,8 @@ or GPL2.txt for full copies of the license.
 #include <linux/file.h>
 #include <linux/fs_struct.h>
 #include <linux/pid_namespace.h>
+#include <linux/net_namespace.h>
+#include <linux/ipc_namespace.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
@@ -758,6 +760,10 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	long total_rss = 0;
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
+	uint64_t cap;
+	const struct cred *cred;
+	uint64_t ns;
+	struct nsproxy *ns_proxy;
 
 #ifdef __NR_clone3
 	struct clone_args cl_args;
@@ -1196,6 +1202,58 @@ cgroups_error:
 		res = val_to_ring(args, val, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		/*
+		 * capabilities
+		 */
+		if(args->event_type == PPME_SYSCALL_EXECVE_19_X)
+		{
+			cred = get_current_cred();
+
+			cap = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+			res = val_to_ring(args, cap, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+			
+			cap = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
+			res = val_to_ring(args, cap, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+			
+			cap = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
+			res = val_to_ring(args, cap, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+			/*
+			cap = ((uint64_t)cred->cap_bset.cap[1] << 32) + cred->cap_bset.cap[0];
+			printk("bounding: %llx", cap);
+			cap = ((uint64_t)cred->cap_ambient.cap[1] << 32) + cred->cap_ambient.cap[0];
+			printk("ambient: %llx", cap);
+			*/
+		}
+
+		/* 
+		 * namespaces
+		 */
+		if(args->event_type == PPME_SYSCALL_EXECVE_19_X)
+		{
+			ns_proxy = current->nsproxy;
+
+			ns = ns_proxy->pid_ns_for_children->ns.inum;
+			res = val_to_ring(args, ns, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			ns = ns_proxy->net_ns->ns.inum;
+			res = val_to_ring(args, ns, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			ns = ns_proxy->ipc_ns->ns.inum;
+			res = val_to_ring(args, ns, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+		}
 
 		/*
 		 * exe_writable flag
