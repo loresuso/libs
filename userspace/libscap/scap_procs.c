@@ -365,6 +365,38 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_proc_fill_info_from_ns(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
+{
+	char filename[SCAP_MAX_PATH_SIZE];
+	char buf[64];
+	uint64_t pid_ns;
+	uint64_t net_ns;
+	uint64_t ipc_ns;
+
+	snprintf(filename, sizeof(filename), "%s/ns/pid", procdirname);
+	readlink(filename, buf, sizeof(buf));
+	if(sscanf(buf, "pid:[%" PRIu64 "]", &pid_ns) == 1)
+	{
+		tinfo->pid_ns = pid_ns;
+	}
+
+	snprintf(filename, sizeof(filename), "%s/ns/net", procdirname);
+	readlink(filename, buf, sizeof(buf));
+	if(sscanf(buf, "net:[%" PRIu64 "]", &net_ns) == 1)
+	{
+		tinfo->net_ns = net_ns;
+	}
+
+	snprintf(filename, sizeof(filename), "%s/ns/ipc", procdirname);
+	readlink(filename, buf, sizeof(buf));
+	if(sscanf(buf, "ipc:[%" PRIu64 "]", &ipc_ns) == 1)
+	{
+		tinfo->ipc_ns = pid_ns;
+	}
+	
+	return SCAP_SUCCESS;
+}
+
 //
 // use prlimit to extract the RLIMIT_NOFILE for the tid. On systems where prlimit
 // is not supported, just return -1
@@ -885,6 +917,17 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	// extract the user id and ppid from /proc/pid/status
 	//
 	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle, dir_name, tinfo))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill uid and pid for %s (%s)",
+			 dir_name, handle->m_lasterr);
+		free(tinfo);
+		return SCAP_FAILURE;
+	}
+
+	//
+	// extract namespaces from /proc/pid/ns
+	//
+	if(SCAP_FAILURE == scap_proc_fill_info_from_ns(handle, dir_name, tinfo))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't fill uid and pid for %s (%s)",
 			 dir_name, handle->m_lasterr);

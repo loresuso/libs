@@ -256,6 +256,9 @@ typedef struct scap_threadinfo
 	uint64_t cap_permitted; ///< permitted capabilities
 	uint64_t cap_effective; ///< effective capabilities
 	uint64_t cap_inheritable; ///< inheritable capabilities
+	uint64_t pid_ns; ///< pid namespace
+	uint64_t net_ns; ///< network namespace
+	uint64_t ipc_ns; ///< ipc namespace
 	uint32_t vmsize_kb; ///< total virtual memory (as kb)
 	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
 	uint32_t vmswap_kb; ///< swapped memory (as kb)
