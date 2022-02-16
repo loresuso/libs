@@ -1103,6 +1103,30 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
+		/* 
+		 * namespaces
+		 */
+		if(args->event_type == PPME_SYSCALL_CLONE_20_X ||
+			args->event_type == PPME_SYSCALL_CLONE3_X)
+		{
+			ns_proxy = current->nsproxy;
+
+			ns = ns_proxy->pid_ns_for_children->ns.inum;
+			res = val_to_ring(args, ns, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			ns = ns_proxy->net_ns->ns.inum;
+			res = val_to_ring(args, ns, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			ns = ns_proxy->ipc_ns->ns.inum;
+			res = val_to_ring(args, ns, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+		}
+
 	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X || 
 			   args->event_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
@@ -1206,54 +1230,28 @@ cgroups_error:
 		/*
 		 * capabilities
 		 */
-		if(args->event_type == PPME_SYSCALL_EXECVE_19_X)
-		{
-			cred = get_current_cred();
+		cred = get_current_cred();
 
-			cap = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
-			res = val_to_ring(args, cap, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-			
-			cap = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
-			res = val_to_ring(args, cap, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-			
-			cap = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
-			res = val_to_ring(args, cap, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-			/*
-			cap = ((uint64_t)cred->cap_bset.cap[1] << 32) + cred->cap_bset.cap[0];
-			printk("bounding: %llx", cap);
-			cap = ((uint64_t)cred->cap_ambient.cap[1] << 32) + cred->cap_ambient.cap[0];
-			printk("ambient: %llx", cap);
-			*/
-		}
-
-		/* 
-		 * namespaces
-		 */
-		if(args->event_type == PPME_SYSCALL_EXECVE_19_X)
-		{
-			ns_proxy = current->nsproxy;
-
-			ns = ns_proxy->pid_ns_for_children->ns.inum;
-			res = val_to_ring(args, ns, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-
-			ns = ns_proxy->net_ns->ns.inum;
-			res = val_to_ring(args, ns, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-
-			ns = ns_proxy->ipc_ns->ns.inum;
-			res = val_to_ring(args, ns, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-		}
+		cap = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+		res = val_to_ring(args, cap, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		
+		cap = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
+		res = val_to_ring(args, cap, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		
+		cap = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
+		res = val_to_ring(args, cap, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		/*
+		cap = ((uint64_t)cred->cap_bset.cap[1] << 32) + cred->cap_bset.cap[0];
+		printk("bounding: %llx", cap);
+		cap = ((uint64_t)cred->cap_ambient.cap[1] << 32) + cred->cap_ambient.cap[0];
+		printk("ambient: %llx", cap);
+		*/	
 
 		/*
 		 * exe_writable flag
