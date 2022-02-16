@@ -369,29 +369,27 @@ int32_t scap_proc_fill_info_from_ns(scap_t *handle, char* procdirname, struct sc
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char buf[64];
-	uint64_t pid_ns;
-	uint64_t net_ns;
-	uint64_t ipc_ns;
+	uint64_t ns;
 
 	snprintf(filename, sizeof(filename), "%s/ns/pid", procdirname);
 	readlink(filename, buf, sizeof(buf));
-	if(sscanf(buf, "pid:[%" PRIu64 "]", &pid_ns) == 1)
+	if(sscanf(buf, "pid:[%" PRIu64 "]", &ns) == 1)
 	{
-		tinfo->pid_ns = pid_ns;
+		tinfo->pid_ns = ns;
 	}
 
 	snprintf(filename, sizeof(filename), "%s/ns/net", procdirname);
 	readlink(filename, buf, sizeof(buf));
-	if(sscanf(buf, "net:[%" PRIu64 "]", &net_ns) == 1)
+	if(sscanf(buf, "net:[%" PRIu64 "]", &ns) == 1)
 	{
-		tinfo->net_ns = net_ns;
+		tinfo->net_ns = ns;
 	}
 
 	snprintf(filename, sizeof(filename), "%s/ns/ipc", procdirname);
 	readlink(filename, buf, sizeof(buf));
-	if(sscanf(buf, "ipc:[%" PRIu64 "]", &ipc_ns) == 1)
+	if(sscanf(buf, "ipc:[%" PRIu64 "]", &ns) == 1)
 	{
-		tinfo->ipc_ns = pid_ns;
+		tinfo->ipc_ns = ns;
 	}
 	
 	return SCAP_SUCCESS;
