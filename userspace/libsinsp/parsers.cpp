@@ -1209,6 +1209,24 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		tinfo->m_loginuid = ptinfo->m_loginuid;
 
+		// Copy capabilities
+		tinfo->m_cap_inheritable = ptinfo->m_cap_inheritable;
+		tinfo->m_cap_permitted = ptinfo->m_cap_permitted;
+		tinfo->m_cap_effective = ptinfo->m_cap_effective;
+
+		// Copy namespaces
+		switch(etype)
+		{
+			case PPME_SYSCALL_FORK_20_X:
+			case PPME_SYSCALL_VFORK_20_X:
+				tinfo->m_pid_ns = ptinfo->m_pid_ns;
+				tinfo->m_net_ns = ptinfo->m_net_ns;
+				tinfo->m_ipc_ns = ptinfo->m_ipc_ns;
+				break;
+			default:
+				break;
+		}
+
 		if(!(flags & PPM_CL_CLONE_THREAD))
 		{
 			tinfo->m_env = ptinfo->m_env;
@@ -1551,10 +1569,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	switch(etype)
 	{
-		case PPME_SYSCALL_FORK_20_X:
-		case PPME_SYSCALL_VFORK_20_X:
-			// copy from parent 
-			break;
 		case PPME_SYSCALL_CLONE_20_X:
 		case PPME_SYSCALL_CLONE3_X:
 			parinfo = evt->get_param(20);
@@ -1570,10 +1584,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 			break;
 	}
-
-	//
-	// copy capabilities
-	//
 
 	//
 	// Initialize the thread clone time
@@ -1932,6 +1942,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
 	}
 
+	// Get capabilities 
 	switch(etype)
 	{
 		case PPME_SYSCALL_EXECVE_19_X:
