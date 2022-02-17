@@ -1860,6 +1860,13 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_liveness_probe", "Process Is Container Liveness", "true if this process is running as a part of the container's liveness probe."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_readiness_probe", "Process Is Container Readiness", "true if this process is running as a part of the container's readiness probe."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "true if this process' executable file is writable by the same user that spawned the process."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pidns", "Pid namespace", "The PID namespace of this process"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.netns", "Net namespace", "The NET namespace of this process"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.ipcns", "Ipc namespace", "The IPC namespace of this process"}, // set host if equivalent to init namespace for each namespace. that's why it is charbuf
+	{PT_UINT64, EPF_NONE, PF_HEX, "proc.cap_permitted", "Permitted capabilities", "The permitted capabilities set"},
+	{PT_UINT64, EPF_NONE, PF_HEX, "proc.cap_inheritable", "Inheritable capabilities", "The inheritable capabilities set"},
+	{PT_UINT64, EPF_NONE, PF_HEX, "proc.cap_effective", "Effective capabilities", "The effective capabilities set"},
+
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2661,6 +2668,27 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_IS_EXE_WRITABLE:
 		m_tbool = tinfo->m_exe_writable;
 		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_PIDNS:
+		m_tstr = std::to_string(tinfo->m_pid_ns);
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_NETNS:
+		m_tstr = std::to_string(tinfo->m_net_ns);
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_IPCNS:
+		m_tstr = std::to_string(tinfo->m_ipc_ns);
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_CAP_PERMITTED:
+		m_u64val = tinfo->m_cap_permitted;
+		RETURN_EXTRACT_VAR(m_u64val);
+		break;
+	case TYPE_CAP_INHERITABLE:
+		m_u64val = tinfo->m_cap_inheritable;
+		RETURN_EXTRACT_VAR(m_u64val);
+		break;
+	case TYPE_CAP_EFFECTIVE:
+		m_u64val = tinfo->m_cap_effective;
+		RETURN_EXTRACT_VAR(m_u64val);
+		break;
 	default:
 		ASSERT(false);
 		return NULL;
