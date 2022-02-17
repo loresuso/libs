@@ -408,6 +408,9 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
 	m_cap_inheritable = pi->cap_inheritable;
+	m_pid_ns = pi->pid_ns;
+	m_net_ns = pi->net_ns;
+	m_ipc_ns = pi->ipc_ns;
 	m_vmsize_kb = pi->vmsize_kb;
 	m_vmrss_kb = pi->vmrss_kb;
 	m_vmswap_kb = pi->vmswap_kb;
