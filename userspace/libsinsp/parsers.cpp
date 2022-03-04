@@ -4803,6 +4803,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info->m_imagedigest = imagedigest.asString();
 		}
+		const Json::Value& entrypoint = container["entrypoint"];
+		if(check_json_val_is_convertible(imagedigest, Json::stringValue, "entrypoint"))
+		{
+			container_info->m_entrypoint = entrypoint.asString();
+		}
 		const Json::Value& privileged = container["privileged"];
 		if(check_json_val_is_convertible(privileged, Json::booleanValue, "privileged"))
 		{

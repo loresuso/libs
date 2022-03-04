@@ -732,6 +732,27 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 		container.m_is_pod_sandbox = true;
 	}
 
+	// Container entrypoint
+	const Json::Value& entrypoint = config_obj["Entrypoint"];
+	if(entrypoint.isArray())
+	{
+		for(const auto& v : entrypoint)
+		{
+			container.m_entrypoint += v.asString();
+			container.m_entrypoint += " ";
+		}
+
+		size_t size = container.m_entrypoint.size();
+		if(size > 0)
+		{
+			container.m_entrypoint = container.m_entrypoint.substr(0, size - 1);
+		}
+	}
+	else if(entrypoint.isString())
+	{
+		container.m_entrypoint = entrypoint.asString();
+	}
+
 	// Get the created time - this will be string format i.e. "%Y-%m-%dT%H:%M:%SZ"
 	// Convert it to seconds. This can be done with get_epoc_utc_seconds()
 	container.m_created_time = static_cast<int64_t>(get_epoch_utc_seconds(root["Created"].asString()));

@@ -167,6 +167,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagerepo"] = container_info.m_imagerepo;
 	container["imagetag"] = container_info.m_imagetag;
 	container["imagedigest"] = container_info.m_imagedigest;
+	container["entrypoint"] = container_info.m_entrypoint;
 	container["privileged"] = container_info.m_privileged;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 	container["lookup_state"] = static_cast<int>(container_info.m_lookup_state);

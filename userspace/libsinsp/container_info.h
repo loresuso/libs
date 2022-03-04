@@ -230,6 +230,7 @@ public:
 	std::string m_imagerepo;
 	std::string m_imagetag;
 	std::string m_imagedigest;
+	std::string m_entrypoint;
 	uint32_t m_container_ip;
 	bool m_privileged;
 	std::vector<container_mount_info> m_mounts;
