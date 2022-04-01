@@ -73,6 +73,11 @@ const struct ppm_name_value file_flags[] = {
 	{0, 0},
 };
 
+const struct ppm_name_value file_additional_flags[] = {
+	{"OVERLAYFS", PPM_OVERLAYFS},
+	{0, 0},
+};
+
 const struct ppm_name_value flock_flags[] = {
 	{"LOCK_SH", PPM_LOCK_SH},
 	{"LOCK_EX", PPM_LOCK_EX},
@@ -538,6 +543,7 @@ const struct ppm_name_value openat2_flags[] = {
 
 const struct ppm_name_value execve_flags[] = {
 	{"EXE_WRITABLE", PPM_EXE_WRITABLE},
+	{"UPPER_LAYER", PPM_UPPER_LAYER},
 	{0, 0},
 };
 

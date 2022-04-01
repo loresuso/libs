@@ -268,6 +268,11 @@ public:
 		return (m_dev & 0xff) | ((m_dev >> 12) & 0xfff00);
 	}
 
+	bool get_is_overlayfs() const
+	{
+		return m_is_overlayfs;
+	}
+
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
@@ -493,6 +498,7 @@ private:
 	uint32_t m_dev;
 	uint32_t m_mount_id;
 	uint64_t m_ino;
+	bool m_is_overlayfs;
 
 	fd_callbacks_info* m_callbacks;
 

@@ -606,10 +606,16 @@ or GPL2.txt for full copies of the license.
 #define PPM_RESOLVE_CACHED			(1 << 5)
 
 /*
+ * File additional flags
+ */
+#define PPM_OVERLAYFS			(1 << 0)
+
+/*
  * Execve family additional flags.
  */
 #define PPM_EXE_WRITABLE		(1 << 0)
-  
+#define PPM_UPPER_LAYER 		(1 << 1)
+
 /*
  * Execveat flags
  */
@@ -1660,6 +1666,7 @@ struct ppm_evt_hdr {
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
+extern const struct ppm_name_value file_additional_flags[];
 extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];

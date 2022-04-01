@@ -2165,6 +2165,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	string sdir;
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
+	bool is_overlayfs = false;
 	bool lastevent_retrieved = false;
 
 	ASSERT(evt->m_tinfo);
@@ -2301,6 +2302,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			dev = *(uint32_t *)parinfo->m_val;
 		}
 
+		if(etype == PPME_SYSCALL_OPENAT_2_X && evt->get_num_params() > 6)
+		{
+			parinfo = evt->get_param(6);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			is_overlayfs = *(uint32_t *)parinfo->m_val & PPM_OVERLAYFS;
+		}
+
 		//
 		// Compare with enter event parameters
 		//
@@ -2384,6 +2392,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.m_mount_id = 0;
 		fdi.m_dev = dev;
 		fdi.add_filename(fullpath);
+		fdi.m_is_overlayfs = is_overlayfs;
 
 		//
 		// If this is a user event fd, mark it with the proper flag

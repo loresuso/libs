@@ -280,6 +280,33 @@ int f_sys_open_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static inline bool is_overlayfs(int64_t fd)
+{
+	bool res = false;
+	struct file *file;
+	struct super_block *sb;
+	unsigned long sb_magic;
+	
+	file = fget(fd);
+
+	if(!file)
+	{
+		return res;
+	}
+
+	sb = file->f_inode->i_sb;
+	sb_magic = sb->s_magic;
+
+	if(sb_magic == OVERLAYFS_SUPER_MAGIC)
+	{
+		res = true;
+	}
+
+	fput(file);
+
+	return res;
+}
+
 int f_sys_open_x(struct event_filler_arguments *args)
 {
 	syscall_arg_t val;
@@ -1150,6 +1177,7 @@ cgroups_error:
 		long env_len = 0;
 		int tty_nr = 0;
 		bool exe_writable = false;
+		bool upper_layer = false;
 		struct file *exe_file = NULL;
 		uint32_t flags = 0; // execve additional flags
 
@@ -1243,7 +1271,7 @@ cgroups_error:
 			return res;
 
 		/*
-		 * exe_writable flag
+		 * exe_writable and upper_layer flags
 		 */
 
 		exe_file = ppm_get_mm_exe_file(mm);
@@ -1257,7 +1285,31 @@ cgroups_error:
 				exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE) == 0);
 				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+				{
+					struct super_block *sb;
+					unsigned long sb_magic;
+				
+					sb = exe_file->f_inode->i_sb;
+					sb_magic = sb->s_magic;
+					if(sb_magic == OVERLAYFS_SUPER_MAGIC)
+					{
+						struct dentry **upper_dentry;
+						struct inode **lower_inode;
+
+						upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
+						lower_inode = (struct inode **)((char *)upper_dentry + sizeof(struct dentry *));
+						
+						if(!*lower_inode && *upper_dentry)
+						{
+							upper_layer = true;
+						}
+					}
+				}
+#endif
 			}
+
 			fput(exe_file);
 		}
 
@@ -1265,6 +1317,10 @@ cgroups_error:
 			flags |= PPM_EXE_WRITABLE;
 		}
 
+		if (upper_layer) {
+			flags |= PPM_UPPER_LAYER;
+		}
+	
 		// write all the additional flags for execve family here...
 
 		/*
@@ -3378,7 +3434,33 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	if(retval < 0)
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else 
+	{
+		/*
+		* openat additional flags
+		*/
+
+		val = 0;
+
+		if(is_overlayfs(retval))
+		{
+			val |= PPM_OVERLAYFS;
+		}
+
+		res = val_to_ring(args, val, 0, false, 0);
+		if(unlikely(res != PPM_SUCCESS))
+			return res;
+
+	}
+
 	return add_sentinel(args);
+
 }
 
 int f_sys_unlinkat_x(struct event_filler_arguments *args)
