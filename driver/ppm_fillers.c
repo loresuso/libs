@@ -356,6 +356,29 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	/*
+	* file additional flags
+	*/
+	if(retval < 0)
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else 
+	{
+		val = 0;
+
+		if(is_overlayfs(retval))
+		{
+			val |= PPM_OVERLAYFS;
+		}
+
+		res = val_to_ring(args, val, 0, false, 0);
+		if(unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
 	return add_sentinel(args);
 }
 
@@ -3434,6 +3457,9 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	/*
+	* file additional flags
+	*/
 	if(retval < 0)
 	{
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -3442,10 +3468,6 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	}
 	else 
 	{
-		/*
-		* openat additional flags
-		*/
-
 		val = 0;
 
 		if(is_overlayfs(retval))
@@ -3456,7 +3478,6 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 		res = val_to_ring(args, val, 0, false, 0);
 		if(unlikely(res != PPM_SUCCESS))
 			return res;
-
 	}
 
 	return add_sentinel(args);
