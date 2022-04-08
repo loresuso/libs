@@ -2092,6 +2092,39 @@ static __always_inline bool get_exe_writable(struct task_struct *task)
 	return false;
 }
 
+static __always_inline bool get_upper_layer(struct task_struct *task)
+{
+	struct file *exe_file;
+	struct mm_struct *mm;
+
+	mm = _READ(task->mm);
+	exe_file = _READ(mm->exe_file);
+	if (!exe_file)
+	{
+		return false;
+	}
+
+	struct inode *exe_inode = _READ(exe_file->f_inode);
+	struct super_block *sb = _READ(exe_inode->i_sb);
+	unsigned long sb_magic = _READ(sb->s_magic);
+
+	if(sb_magic == OVERLAYFS_SUPER_MAGIC)
+	{
+		struct dentry *upper_dentry;
+		struct inode *lower_inode;
+		char *vfs_inode = (char *)exe_inode;
+		bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
+		bpf_probe_read(&lower_inode, sizeof(lower_inode), vfs_inode + sizeof(struct inode) + sizeof(struct dentry *));
+
+		if(!lower_inode && upper_dentry)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 FILLER(proc_startupdate, true)
 {
 	struct task_struct *real_parent;
@@ -2604,6 +2637,7 @@ FILLER(execve_family_flags, true)
 	int res = 0;
 	unsigned long val;
 	bool exe_writable = false;
+	bool upper_layer = false;
 
 	task = (struct task_struct *)bpf_get_current_task();
 	cred = (struct cred *)_READ(task->cred);
@@ -2615,6 +2649,15 @@ FILLER(execve_family_flags, true)
 	if (exe_writable) 
 	{
 		flags |= PPM_EXE_WRITABLE;
+	}
+
+	/*
+	 * upper_layer
+	 */
+	upper_layer = get_upper_layer(task);
+	if (upper_layer)
+	{
+		flags |= PPM_UPPER_LAYER;
 	}
 
 	// write all additional flags for execve family here...
