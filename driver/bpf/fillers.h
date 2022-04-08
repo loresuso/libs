@@ -2111,6 +2111,7 @@ FILLER(proc_startupdate, true)
 	pid_t pid;
 	int res;
 
+	bpf_printk("hey");
 	/*
 	 * Make sure the operation was successful
 	 */
