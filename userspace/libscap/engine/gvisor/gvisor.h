@@ -102,6 +102,9 @@ private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
+    std::vector<std::string> runsc(char *argv[]);
+    void runsc_list();
+
     char *m_lasterr;
     int m_listenfd;
     int m_epollfd;
@@ -111,6 +114,7 @@ private:
 
     // buffers in which to store events, one per each active sandbox, indexed by fd
     std::map<int, scap_sized_buffer> m_sandbox_buffers;
+    std::vector<std::string> m_running_sandboxes;
 };
 
 } // namespace scap_gvisor
