@@ -113,6 +113,30 @@ void engine::free_sandbox_buffers()
 	m_sandbox_buffers.clear();
 }
 
+static bool handshake(int client)
+{
+	struct handshake in = {};
+	ssize_t bytes = read(client, &in, sizeof(in));
+	if(bytes < (ssize_t)sizeof(in))
+	{
+		return false;
+	}
+
+	if(in.version < min_supported_version)
+	{
+		return false;
+	}
+
+	struct handshake out = {.version = current_version};
+	bytes = write(client, &out, sizeof(out));
+	if(bytes < (ssize_t)sizeof(out))
+	{
+		return false;
+	}
+	
+	return true;
+}
+
 static void accept_thread(int listenfd, int epollfd)
 {
 	while(true)
@@ -125,6 +149,12 @@ static void accept_thread(int listenfd, int epollfd)
 				continue;
 			}
 			return;
+		}
+
+		if(!handshake(client))
+		{
+			close(client);
+			continue;
 		}
 
 		struct epoll_event evt;
