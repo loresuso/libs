@@ -28,7 +28,6 @@ public:
 
 	bool start_trace_session();
 
-private:
 	std::vector<std::string> runsc(char *argv[]);
 	void runsc_list();
     void runsc_trace_create(std::string sandbox_id);

@@ -15,6 +15,8 @@ limitations under the License.
 
 */
 
+#include <iostream>
+
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -28,6 +30,13 @@ runsc_manager::runsc_manager(std::string root_path, std::string trace_session_co
 
 bool runsc_manager::start_trace_session()
 {
+	runsc_list();
+	for(std::string s : m_running_sandboxes)
+	{
+		std::cout << s << std::endl;
+		runsc_trace_create(s);
+		runsc_trace_procfs(s);
+	}
 	return true;
 }
 
