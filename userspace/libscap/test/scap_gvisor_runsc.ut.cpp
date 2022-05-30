@@ -15,21 +15,15 @@ limitations under the License.
 
 */
 
-#include "scap.h"
-#include "gvisor.h"
+#include "engine/gvisor/runsc.h"
 #include <gtest/gtest.h>
 
-TEST(gvisor_runsc, list_create)
+TEST(gvisor_runsc, start_tracing)
 {
-	char last_err[SCAP_LASTERR_SIZE];
-	scap_gvisor::engine engine(last_err);
+	runsc_manager manager(
+		"/var/run/docker/runtime-runc/moby",
+		"/home/ubuntu/falcosecurity/libs/userspace/libscap/engine/gvisor/config.json"
+	);
 
-	engine.runsc_list();
-	for(int i = 0; i < engine.m_running_sandboxes.size(); i++)
-	{
-		std::cout << engine.m_running_sandboxes[i];
-	}
-	EXPECT_EQ(engine.m_running_sandboxes.size(), 1);
-
-	engine.runsc_trace_create(engine.m_running_sandboxes[0]);
+	manager.start_trace_session();
 }

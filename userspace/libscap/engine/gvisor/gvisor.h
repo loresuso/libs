@@ -102,11 +102,6 @@ private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
-    std::vector<std::string> runsc(char *argv[]);
-    void runsc_list();
-    void runsc_trace_create(std::string sandbox_id);
-    void runsc_trace_procfs(std::string sandbox_id);
-
     char *m_lasterr;
     int m_listenfd;
     int m_epollfd;
@@ -117,9 +112,6 @@ private:
     // buffers in which to store events, one per each active sandbox, indexed by fd
     std::map<int, scap_sized_buffer> m_sandbox_buffers;
 
-    std::string m_runsc_root_path = "/var/run/docker/runtime-runc/moby";
-    std::string m_trace_session_config_path = "/home/ubuntu/falcosecurity/libs/userspace/libscap/engine/gvisor/config.json";
-    std::vector<std::string> m_running_sandboxes;
 };
 
 } // namespace scap_gvisor
