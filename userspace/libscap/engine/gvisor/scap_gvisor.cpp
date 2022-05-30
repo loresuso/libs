@@ -367,7 +367,7 @@ void engine::runsc_list()
 	const char *argv[] = {
 		"runsc", 
 		"--root",
-		"/var/run/docker/runtime-runc/moby",
+		m_runsc_root_path.c_str(),
 		"list",
 		NULL
 	};
@@ -382,6 +382,24 @@ void engine::runsc_list()
 			m_running_sandboxes.emplace_back(sandbox);
 		}
 	}
+}
+
+void engine::runsc_trace_create(std::string sandbox_id)
+{
+	const char *argv[] = {
+		"runsc", 
+		"--root",
+		m_runsc_root_path.c_str(),
+		"trace",
+		"create",
+		"--force",
+		"--config", 
+		m_trace_session_config_path.c_str(),
+		sandbox_id.c_str(),
+		NULL
+	};
+
+	std::vector<std::string> output = runsc((char **)argv);
 }
 
 } // namespace scap_gvisor
