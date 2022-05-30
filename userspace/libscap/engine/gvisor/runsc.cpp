@@ -28,14 +28,13 @@ runsc_manager::runsc_manager(std::string root_path, std::string trace_session_co
 
 bool runsc_manager::start_trace_session()
 {
-	
+	return true;
 }
 
 std::vector<std::string> runsc_manager::runsc(char *argv[])
 {
 	std::vector<std::string> res;
 	int pipefds[2];
-	int line_size = 512;
 
 	int ret = pipe(pipefds);
 	if(ret)
@@ -46,7 +45,7 @@ std::vector<std::string> runsc_manager::runsc(char *argv[])
 	int pid = fork();
 	if(pid > 0)
 	{
-		char line[line_size];
+		char line[max_line_size];
 		int status;
 		
 		::close(pipefds[1]);
@@ -62,7 +61,7 @@ std::vector<std::string> runsc_manager::runsc(char *argv[])
 			return res;
 		}
 
-		while(fgets(line, line_size, f))
+		while(fgets(line, max_line_size, f))
 		{
 			res.emplace_back(std::string(line));
 		}

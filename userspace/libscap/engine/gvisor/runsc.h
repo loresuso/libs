@@ -20,6 +20,8 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+constexpr unsigned long long max_line_size = 2048;
+
 class runsc_manager {
 public:
 	runsc_manager(std::string root_path, std::string trace_session_config_path);
