@@ -19,7 +19,7 @@ include_directories(..)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 set(LIBSCAP_UNIT_TESTS_SOURCES
-    scap_event.ut.cpp
+    scap_gvisor_runsc.ut.cpp
 )
 
 if (ENGINE_GVISOR)
