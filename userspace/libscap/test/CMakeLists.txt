@@ -22,11 +22,12 @@ set(LIBSCAP_UNIT_TESTS_SOURCES
     scap_gvisor_runsc.ut.cpp
 )
 
-if (ENGINE_GVISOR)
-	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES scap_gvisor_parsers.ut.cpp)
-	include_directories(../engine/gvisor)
-	include_directories(${CMAKE_CURRENT_BINARY_DIR}/../engine/gvisor)
-endif()
+
+# if (ENGINE_GVISOR)
+# 	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES scap_gvisor_parsers.ut.cpp)
+# 	include_directories(../engine/gvisor)
+# 	include_directories(${CMAKE_CURRENT_BINARY_DIR}/../engine/gvisor)
+# endif()
 
 add_executable(unit-test-libscap ${LIBSCAP_UNIT_TESTS_SOURCES})
 
@@ -36,7 +37,7 @@ target_link_libraries(unit-test-libscap
 	"${CMAKE_THREAD_LIBS_INIT}"
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
-	scap
+	scap_gvisor_runsc
 )
 
 add_custom_target(run-unit-test-libscap

@@ -12,6 +12,10 @@ add_library(scap_engine_gvisor STATIC
     scap_gvisor.cpp
 )
 
+add_library(scap_gvisor_runsc STATIC 
+    runsc.cpp
+)
+
 add_dependencies(scap_engine_gvisor protobuf)
 
 find_package(Threads)
