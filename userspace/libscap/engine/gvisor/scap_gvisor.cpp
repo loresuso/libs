@@ -402,4 +402,19 @@ void engine::runsc_trace_create(std::string sandbox_id)
 	std::vector<std::string> output = runsc((char **)argv);
 }
 
+void engine::runsc_trace_procfs(std::string sandbox_id)
+{
+	const char *argv[] = {
+		"runsc", 
+		"--root",
+		m_runsc_root_path.c_str(),
+		"trace",
+		"procfs",
+		sandbox_id.c_str(),
+		NULL
+	};
+
+	std::vector<std::string> output = runsc((char **)argv);
+}
+
 } // namespace scap_gvisor
