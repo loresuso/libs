@@ -10,7 +10,8 @@
 	X(PAGE_FAULT_KERN, "page_fault_kernel")      \
         X(SIGNAL_DELIVER, "signal_deliver")   \
 	X(SCHED_PROC_FORK, "sched_process_fork")      \
-	X(SCHED_PROC_EXEC, "sched_process_exec")
+	X(SCHED_PROC_EXEC, "sched_process_exec")	\
+	X(SECURITY_FILE_OPEN, "security_file_open")
 
 typedef enum {
 #define X(name, path) name,

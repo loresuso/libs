@@ -98,6 +98,17 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 #endif
 
+	case SECURITY_FILE_OPEN:
+		if (enabled)
+		{
+			ret = pman_attach_security_file_open();
+		}
+		else
+		{
+			ret = pman_detach_security_file_open();
+		}
+		break;
+
 	default:
 		/* Do nothing right now. */
 		break;
@@ -213,6 +224,23 @@ int pman_attach_sched_proc_fork()
 }
 #endif
 
+int pman_attach_security_file_open()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.security_file_open != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.security_file_open = bpf_program__attach(g_state.skel->progs.security_file_open);
+	if(!g_state.skel->links.security_file_open)
+	{
+		pman_print_error("failed to attach the 'security_file_open' program");
+		return errno;
+	}
+	return 0;
+}
+
 int pman_attach_all_programs()
 {
 	int ret = 0;
@@ -296,6 +324,17 @@ int pman_detach_sched_proc_fork()
 	return 0;
 }
 #endif
+
+int pman_detach_security_file_open()
+{
+	if(g_state.skel->links.security_file_open && bpf_link__destroy(g_state.skel->links.security_file_open))
+	{
+		pman_print_error("failed to detach the 'sched_proc_fork' program");
+		return errno;
+	}
+	g_state.skel->links.security_file_open = NULL;
+	return 0;
+}
 
 int pman_detach_all_programs()
 {
