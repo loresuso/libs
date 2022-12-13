@@ -19,6 +19,8 @@ int BPF_PROG(security_file_open,
     bpf_d_path(&file->f_path, filename, MAX_PATH);
     auxmap__store_charbuf_param(auxmap, (unsigned long)&filename, MAX_PATH, KERNEL);
 
+    auxmap__store_u32_param(auxmap, open_flags_to_scap(file->f_flags));
+
     auxmap__store_u64_param(auxmap, file->f_inode->i_sb->s_magic);
     
     /*=============================== COLLECT PARAMETERS  ===========================*/
