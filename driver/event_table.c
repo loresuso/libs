@@ -390,11 +390,24 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EPOLL_CREATE_X */{"epoll_create", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, { {"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_EPOLL_CREATE1_E */{"epoll_create1", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, epoll_create1_flags} } },
 	/* PPME_SYSCALL_EPOLL_CREATE1_X */{"epoll_create1", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SECURITY_FILE_OPEN_E */{"NA6", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SECURITY_OPEN_X */{"security_file_open", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"name", PT_FSPATH, PF_NA}, {"flags", PT_FLAGS32, PF_HEX}, {"fstype", PT_UINT64, PF_HEX} } },
-	/* PPME_SECURITY_BPRM_CREDS_FOR_EXEC_E */{"NA7", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SECURITY_BPRM_CREDS_FOR_EXEC_X */{"security_bprm_creds_for_exec", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"name", PT_FSPATH, PF_NA} } },
-
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_INODE_UNLINK_X */{"security_inode_unlink", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_SOCKET_ACCEPT_X */{"security_socket_accept", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_SOCKET_BIND_X */{"security_socket_bind", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_SOCKET_CONNECT_X */{"security_socket_connect", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_SOCKET_CREATE_X */{"security_socket_create", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_SOCKET_LISTEN_X */{"security_socket_listen", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
+	/* NA */ {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+	/* PPME_SECURITY_SB_MOUNT_X */{"security_sb_mount", EC_SECURITY, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"ret", PT_ERRNO, PF_DEC}, {"ret2", PT_ERRNO, PF_DEC} } },
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.

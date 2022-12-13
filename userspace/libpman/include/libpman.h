@@ -221,7 +221,35 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int pman_attach_security_bprm_creds_for_exec(void);
+	int pman_detach_security_bprm_creds_for_exec(void);
+
+	int pman_attach_security_inode_unlink(void);
+
+	int pman_detach_security_inode_unlink(void);
+
+	int pman_attach_security_socket_accept(void);
+
+	int pman_detach_security_socket_accept(void);
+
+	int pman_attach_security_socket_bind(void);
+
+	int pman_detach_security_socket_bind(void);
+
+	int pman_attach_security_socket_connect(void);
+
+	int pman_detach_security_socket_connect(void);
+
+	int pman_attach_security_socket_create(void);
+
+	int pman_detach_security_socket_create(void);
+
+	int pman_attach_security_socket_listen(void);
+
+	int pman_detach_security_socket_listen(void);
+
+	int pman_attach_security_sb_mount(void);
+
+	int pman_detach_security_sb_mount(void);
 
 	/////////////////////////////
 	// MANAGE RINGBUFFERS
@@ -256,7 +284,7 @@ extern "C"
 	 * @param cpu_id in case of success returns the id of the CPU
 	 * on which we have found the event, otherwise return `-1`.
 	 */
-	void pman_consume_first_from_buffers(void** event_ptr, int16_t *cpu_id);
+	void pman_consume_first_from_buffers(void** event_ptr, int16_t* cpu_id);
 
 	/////////////////////////////
 	// CAPTURE (EXCHANGE VALUES WITH BPF SIDE)
@@ -266,7 +294,7 @@ extern "C"
 	 * @brief Enable BPF-capture if we have previously
 	 * disabled it.
 	 */
-	int pman_enable_capture(bool *tp_set);
+	int pman_enable_capture(bool* tp_set);
 
 	/**
 	 * @brief Disable BPF capture for example when we
@@ -441,7 +469,7 @@ extern "C"
 	 * @brief Return `true` if all ring buffers are full. To state
 	 * that a ring buffer is full we check that the free space is less
 	 * than the `threshold`
-	 * 
+	 *
 	 * @param threshold used to check if a buffer is full
 	 * @return `true` if all buffers are full, otherwise `false`
 	 */
@@ -449,7 +477,7 @@ extern "C"
 
 	/**
 	 * @brief Get the producer pos for the required ring
-	 * 
+	 *
 	 * @param ring_num ring for which we want to obtain the producer pos
 	 * @return producer pos as an unsigned long
 	 */

@@ -30,7 +30,7 @@ int pman_update_single_program(int tp, bool enabled)
 	switch(tp)
 	{
 	case SYS_ENTER:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_syscall_enter_dispatcher();
 		}
@@ -41,7 +41,7 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 
 	case SYS_EXIT:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_syscall_exit_dispatcher();
 		}
@@ -51,7 +51,7 @@ int pman_update_single_program(int tp, bool enabled)
 		}
 		break;
 	case SCHED_PROC_EXIT:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_sched_proc_exit();
 		}
@@ -62,7 +62,7 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 
 	case SCHED_SWITCH:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_sched_switch();
 		}
@@ -74,7 +74,7 @@ int pman_update_single_program(int tp, bool enabled)
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	case SCHED_PROC_EXEC:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_sched_proc_exec();
 		}
@@ -87,7 +87,7 @@ int pman_update_single_program(int tp, bool enabled)
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 	case SCHED_PROC_FORK:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_sched_proc_fork();
 		}
@@ -99,7 +99,7 @@ int pman_update_single_program(int tp, bool enabled)
 #endif
 
 	case SECURITY_FILE_OPEN:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_security_file_open();
 		}
@@ -110,16 +110,92 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 
 	case SECURITY_BPRM_CREDS_FOR_EXEC:
-		if (enabled)
+		if(enabled)
 		{
 			ret = pman_attach_security_bprm_creds_for_exec();
 		}
 		else
 		{
-			ret = pman_attach_security_bprm_creds_for_exec();
+			ret = pman_detach_security_bprm_creds_for_exec();
 		}
 		break;
 
+	case SECURITY_INODE_UNLINK:
+		if(enabled)
+		{
+			ret = pman_attach_security_inode_unlink();
+		}
+		else
+		{
+			ret = pman_detach_security_inode_unlink();
+		}
+		break;
+
+	case SECURITY_SOCKET_ACCEPT:
+		if(enabled)
+		{
+			ret = pman_attach_security_socket_accept();
+		}
+		else
+		{
+			ret = pman_detach_security_socket_accept();
+		}
+		break;
+
+	case SECURITY_SOCKET_BIND:
+		if(enabled)
+		{
+			ret = pman_attach_security_socket_bind();
+		}
+		else
+		{
+			ret = pman_detach_security_socket_bind();
+		}
+		break;
+
+	case SECURITY_SOCKET_CONNECT:
+		if(enabled)
+		{
+			ret = pman_attach_security_socket_connect();
+		}
+		else
+		{
+			ret = pman_detach_security_socket_connect();
+		}
+		break;
+
+	case SECURITY_SOCKET_CREATE:
+		if(enabled)
+		{
+			ret = pman_attach_security_socket_create();
+		}
+		else
+		{
+			ret = pman_detach_security_socket_create();
+		}
+		break;
+
+	case SECURITY_SOCKET_LISTEN:
+		if(enabled)
+		{
+			ret = pman_attach_security_socket_listen();
+		}
+		else
+		{
+			ret = pman_detach_security_socket_listen();
+		}
+		break;
+
+	case SECURITY_SB_MOUNT:
+		if(enabled)
+		{
+			ret = pman_attach_security_sb_mount();
+		}
+		else
+		{
+			ret = pman_detach_security_sb_mount();
+		}
+		break;
 	default:
 		/* Do nothing right now. */
 		break;
@@ -269,10 +345,129 @@ int pman_attach_security_bprm_creds_for_exec()
 	return 0;
 }
 
+int pman_attach_security_inode_unlink()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.inode_unlink != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.inode_unlink = bpf_program__attach(g_state.skel->progs.inode_unlink);
+	if(!g_state.skel->links.inode_unlink)
+	{
+		pman_print_error("failed to attach the 'inode_unlink' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_security_socket_accept()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.socket_accept != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.socket_accept = bpf_program__attach(g_state.skel->progs.socket_accept);
+	if(!g_state.skel->links.socket_accept)
+	{
+		pman_print_error("failed to attach the 'socket_accept' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_security_socket_bind()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.socket_bind != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.socket_bind = bpf_program__attach(g_state.skel->progs.socket_bind);
+	if(!g_state.skel->links.socket_bind)
+	{
+		pman_print_error("failed to attach the 'socket_bind' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_security_socket_connect()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.socket_connect != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.socket_connect = bpf_program__attach(g_state.skel->progs.socket_connect);
+	if(!g_state.skel->links.socket_connect)
+	{
+		pman_print_error("failed to attach the 'socket_connect' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_security_socket_create()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.socket_create != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.socket_create = bpf_program__attach(g_state.skel->progs.socket_create);
+	if(!g_state.skel->links.socket_create)
+	{
+		pman_print_error("failed to attach the 'socket_create' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_security_socket_listen()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.socket_listen != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.socket_listen = bpf_program__attach(g_state.skel->progs.socket_listen);
+	if(!g_state.skel->links.socket_listen)
+	{
+		pman_print_error("failed to attach the 'socket_listen' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_security_sb_mount()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.sb_mount != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.sb_mount = bpf_program__attach(g_state.skel->progs.sb_mount);
+	if(!g_state.skel->links.sb_mount)
+	{
+		pman_print_error("failed to attach the 'sb_mount' program");
+		return errno;
+	}
+	return 0;
+}
+
 int pman_attach_all_programs()
 {
 	int ret = 0;
-	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	for(int i = 0; i < TP_VAL_MAX && ret == 0; i++)
 	{
 		ret = pman_update_single_program(i, true);
 	}
@@ -357,7 +552,7 @@ int pman_detach_security_file_open()
 {
 	if(g_state.skel->links.security_file_open && bpf_link__destroy(g_state.skel->links.security_file_open))
 	{
-		pman_print_error("failed to detach the 'sched_proc_fork' program");
+		pman_print_error("failed to detach the 'security_file_open' program");
 		return errno;
 	}
 	g_state.skel->links.security_file_open = NULL;
@@ -368,20 +563,96 @@ int pman_detach_security_bprm_creds_for_exec()
 {
 	if(g_state.skel->links.security_bprm_creds_for_exec && bpf_link__destroy(g_state.skel->links.security_bprm_creds_for_exec))
 	{
-		pman_print_error("failed to detach the 'sched_proc_fork' program");
+		pman_print_error("failed to detach the 'security_bprm_creds_for_exec' program");
 		return errno;
 	}
 	g_state.skel->links.security_bprm_creds_for_exec = NULL;
 	return 0;
 }
 
+int pman_detach_security_inode_unlink()
+{
+	if(g_state.skel->links.inode_unlink && bpf_link__destroy(g_state.skel->links.inode_unlink))
+	{
+		pman_print_error("failed to detach the 'inode_unlink' program");
+		return errno;
+	}
+	g_state.skel->links.inode_unlink = NULL;
+	return 0;
+}
+
+int pman_detach_security_socket_accept()
+{
+	if(g_state.skel->links.socket_accept && bpf_link__destroy(g_state.skel->links.socket_accept))
+	{
+		pman_print_error("failed to detach the 'socket_accept' program");
+		return errno;
+	}
+	g_state.skel->links.socket_accept = NULL;
+	return 0;
+}
+
+int pman_detach_security_socket_bind()
+{
+	if(g_state.skel->links.socket_bind && bpf_link__destroy(g_state.skel->links.socket_bind))
+	{
+		pman_print_error("failed to detach the 'socket_bind' program");
+		return errno;
+	}
+	g_state.skel->links.socket_bind = NULL;
+	return 0;
+}
+
+int pman_detach_security_socket_connect()
+{
+	if(g_state.skel->links.socket_connect && bpf_link__destroy(g_state.skel->links.socket_connect))
+	{
+		pman_print_error("failed to detach the 'socket_connect' program");
+		return errno;
+	}
+	g_state.skel->links.socket_connect = NULL;
+	return 0;
+}
+
+int pman_detach_security_socket_create()
+{
+	if(g_state.skel->links.socket_create && bpf_link__destroy(g_state.skel->links.socket_create))
+	{
+		pman_print_error("failed to detach the 'socket_create' program");
+		return errno;
+	}
+	g_state.skel->links.socket_create = NULL;
+	return 0;
+}
+
+int pman_detach_security_socket_listen()
+{
+	if(g_state.skel->links.socket_listen && bpf_link__destroy(g_state.skel->links.socket_listen))
+	{
+		pman_print_error("failed to detach the 'socket_listen' program");
+		return errno;
+	}
+	g_state.skel->links.socket_listen = NULL;
+	return 0;
+}
+
+int pman_detach_security_sb_mount()
+{
+	if(g_state.skel->links.sb_mount && bpf_link__destroy(g_state.skel->links.sb_mount))
+	{
+		pman_print_error("failed to detach the 'sb_mount' program");
+		return errno;
+	}
+	g_state.skel->links.sb_mount = NULL;
+	return 0;
+}
+
 int pman_detach_all_programs()
 {
 	int ret = 0;
-	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	for(int i = 0; i < TP_VAL_MAX && ret == 0; i++)
 	{
 		ret = pman_update_single_program(i, false);
-
 	}
 	return ret;
 }

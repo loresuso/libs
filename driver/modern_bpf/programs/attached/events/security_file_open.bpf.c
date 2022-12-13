@@ -4,9 +4,9 @@ char filename[MAX_PATH] = {};
 
 SEC("fexit/security_file_open")
 int BPF_PROG(security_file_open,
-    struct file *file, long ret) 
+	     struct file *file, long ret)
 {
-    struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
 	{
 		return 0;
@@ -14,20 +14,20 @@ int BPF_PROG(security_file_open,
 
 	auxmap__preload_event_header(auxmap, PPME_SECURITY_FILE_OPEN_X);
 
-    /*=============================== COLLECT PARAMETERS  ===========================*/
+	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-    bpf_d_path(&file->f_path, filename, MAX_PATH);
-    auxmap__store_charbuf_param(auxmap, (unsigned long)&filename, MAX_PATH, KERNEL);
+	bpf_d_path(&file->f_path, filename, MAX_PATH);
+	auxmap__store_charbuf_param(auxmap, (unsigned long)&filename, MAX_PATH, KERNEL);
 
-    auxmap__store_u32_param(auxmap, open_flags_to_scap(file->f_flags));
+	auxmap__store_u32_param(auxmap, open_flags_to_scap(file->f_flags));
 
-    auxmap__store_u64_param(auxmap, file->f_inode->i_sb->s_magic);
-    
-    /*=============================== COLLECT PARAMETERS  ===========================*/
+	auxmap__store_u64_param(auxmap, file->f_inode->i_sb->s_magic);
 
-    auxmap__finalize_event_header(auxmap);
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	auxmap__finalize_event_header(auxmap);
 
 	auxmap__submit_event(auxmap);
 
-    return 0;
+	return 0;
 }

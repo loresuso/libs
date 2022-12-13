@@ -1,8 +1,8 @@
 #include <helpers/interfaces/variable_size_event.h>
 
-SEC("fexit/security_bprm_creds_for_exec")
-int BPF_PROG(security_bprm_creds_for_exec,
-	     struct linux_binprm *bprm, long ret)
+SEC("fexit/security_sb_mount")
+int BPF_PROG(sb_mount,
+	     const char *dev_name, const struct path *path, const char *type, long unsigned int flags, void *data, long ret)
 {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
@@ -10,11 +10,14 @@ int BPF_PROG(security_bprm_creds_for_exec,
 		return 0;
 	}
 
-	auxmap__preload_event_header(auxmap, PPME_SECURITY_BPRM_CREDS_FOR_EXEC_X);
+	auxmap__preload_event_header(auxmap, PPME_SECURITY_SB_MOUNT_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	auxmap__store_charbuf_param(auxmap, (unsigned long)bprm->filename, MAX_PATH, KERNEL);
+	/* send header + 16 byte */
+	auxmap__store_s64_param(auxmap, ret);
+
+	auxmap__store_s64_param(auxmap, ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
