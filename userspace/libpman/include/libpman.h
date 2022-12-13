@@ -209,6 +209,20 @@ extern "C"
 	 */
 	int pman_detach_security_file_open(void);
 
+	/**
+	 * @brief Attach only the security_file_open lsm hook
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_attach_security_bprm_creds_for_exec(void);
+
+	/**
+	 * @brief Detach only the the security_file_open lsm hook
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_attach_security_bprm_creds_for_exec(void);
+
 	/////////////////////////////
 	// MANAGE RINGBUFFERS
 	/////////////////////////////

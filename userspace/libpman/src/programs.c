@@ -109,6 +109,17 @@ int pman_update_single_program(int tp, bool enabled)
 		}
 		break;
 
+	case SECURITY_BPRM_CREDS_FOR_EXEC:
+		if (enabled)
+		{
+			ret = pman_attach_security_bprm_creds_for_exec();
+		}
+		else
+		{
+			ret = pman_attach_security_bprm_creds_for_exec();
+		}
+		break;
+
 	default:
 		/* Do nothing right now. */
 		break;
@@ -241,6 +252,23 @@ int pman_attach_security_file_open()
 	return 0;
 }
 
+int pman_attach_security_bprm_creds_for_exec()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.security_bprm_creds_for_exec != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.security_bprm_creds_for_exec = bpf_program__attach(g_state.skel->progs.security_bprm_creds_for_exec);
+	if(!g_state.skel->links.security_bprm_creds_for_exec)
+	{
+		pman_print_error("failed to attach the 'security_bprm_creds_for_exec' program");
+		return errno;
+	}
+	return 0;
+}
+
 int pman_attach_all_programs()
 {
 	int ret = 0;
@@ -333,6 +361,17 @@ int pman_detach_security_file_open()
 		return errno;
 	}
 	g_state.skel->links.security_file_open = NULL;
+	return 0;
+}
+
+int pman_detach_security_bprm_creds_for_exec()
+{
+	if(g_state.skel->links.security_bprm_creds_for_exec && bpf_link__destroy(g_state.skel->links.security_bprm_creds_for_exec))
+	{
+		pman_print_error("failed to detach the 'sched_proc_fork' program");
+		return errno;
+	}
+	g_state.skel->links.security_bprm_creds_for_exec = NULL;
 	return 0;
 }
 

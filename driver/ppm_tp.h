@@ -11,7 +11,8 @@
         X(SIGNAL_DELIVER, "signal_deliver")   \
 	X(SCHED_PROC_FORK, "sched_process_fork")      \
 	X(SCHED_PROC_EXEC, "sched_process_exec")	\
-	X(SECURITY_FILE_OPEN, "security_file_open")
+	X(SECURITY_FILE_OPEN, "security_file_open")	\
+	X(SECURITY_BPRM_CREDS_FOR_EXEC, "security_bprm_creds_for_exec")
 
 typedef enum {
 #define X(name, path) name,

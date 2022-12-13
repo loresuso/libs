@@ -255,6 +255,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 	/* Store interesting Tracepoints */
 	oargs->tp_of_interest.tp[SECURITY_FILE_OPEN] = true;
+	oargs->tp_of_interest.tp[SECURITY_BPRM_CREDS_FOR_EXEC] = true;
 	memcpy(&engine.m_handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
 
 	/* Set the boot time */

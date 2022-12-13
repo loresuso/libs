@@ -1,10 +1,8 @@
 #include <helpers/interfaces/variable_size_event.h>
 
-char filename[MAX_PATH] = {};
-
-SEC("fexit/security_file_open")
-int BPF_PROG(security_file_open,
-    struct file *file, long ret) 
+SEC("fexit/security_bprm_creds_for_exec")
+int BPF_PROG(security_bprm_creds_for_exec,
+    struct linux_binprm *bprm, long ret) 
 {
     struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
@@ -12,14 +10,11 @@ int BPF_PROG(security_file_open,
 		return 0;
 	}
 
-	auxmap__preload_event_header(auxmap, PPME_SECURITY_FILE_OPEN_X);
+	auxmap__preload_event_header(auxmap, PPME_SECURITY_BPRM_CREDS_FOR_EXEC_X);
 
     /*=============================== COLLECT PARAMETERS  ===========================*/
 
-    bpf_d_path(&file->f_path, filename, MAX_PATH);
-    auxmap__store_charbuf_param(auxmap, (unsigned long)&filename, MAX_PATH, KERNEL);
-
-    auxmap__store_u64_param(auxmap, file->f_inode->i_sb->s_magic);
+    auxmap__store_charbuf_param(auxmap, (unsigned long)bprm->filename, MAX_PATH, KERNEL);
     
     /*=============================== COLLECT PARAMETERS  ===========================*/
 
