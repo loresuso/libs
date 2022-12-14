@@ -39,6 +39,7 @@ limitations under the License.
 #define EVENT_TYPE_OPTION "--evt_type"
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
+#define LSM_SET_OPTION "--lsm_set"
 
 /* PRINT */
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -48,7 +49,7 @@ limitations under the License.
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
-static const struct ppm_syscall_desc *g_syscall_info_table;
+static const struct ppm_syscall_desc* g_syscall_info_table;
 
 /* Engine params */
 static struct scap_bpf_engine_params bpf_params;
@@ -58,7 +59,7 @@ static struct scap_savefile_engine_params savefile_params;
 
 /* Configuration variables set through CLI. */
 static uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
-static int evt_type = -1;		  /* event type to print. */
+static int evt_type = -1;		 /* event type to print. */
 static bool ppm_sc_is_set = 0;
 static bool tp_is_set = 0;
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
@@ -144,17 +145,16 @@ static int simple_set[] = {
 	PPM_SC_UNSHARE,
 	PPM_SC_USERFAULTFD,
 	PPM_SC_VFORK,
-	-1
-};
+	-1};
 
 /* Generic global variables. */
-static scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
-static uint64_t g_nevts = 0;							    /* total number of events captured. */
-static scap_t* g_h = NULL;							    /* global scap handler. */
-static uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
+static scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			   /* scap oargs used in `scap_open`. */
+static uint64_t g_nevts = 0;							   /* total number of events captured. */
+static scap_t* g_h = NULL;							   /* global scap handler. */
+static uint16_t* lens16 = NULL;							   /* pointer used to print the length of event params. */
 static char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
 static struct timeval tval_start, tval_end, tval_result;
-static unsigned long number_of_timeouts; /* Times in which there were no events in the buffer. */
+static unsigned long number_of_timeouts;  /* Times in which there were no events in the buffer. */
 static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
@@ -247,7 +247,7 @@ void print_sinsp_modifies_state_syscalls()
 
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if (!ppm_scs[ppm_sc])
+		if(!ppm_scs[ppm_sc])
 		{
 			continue;
 		}
@@ -437,7 +437,30 @@ void enable_simple_set()
 	oargs.tp_of_interest.tp[SYS_EXIT] = true;
 
 	int i = 0;
-	for (i = 0; simple_set[i] != -1; i++)
+	for(i = 0; simple_set[i] != -1; i++)
+	{
+		oargs.ppm_sc_of_interest.ppm_sc[simple_set[i]] = true;
+	}
+	tp_is_set = true;
+	ppm_sc_is_set = true;
+}
+
+void enable_LSM_set()
+{
+	oargs.tp_of_interest.tp[SYS_ENTER] = true;
+	oargs.tp_of_interest.tp[SYS_EXIT] = true;
+	oargs.tp_of_interest.tp[SECURITY_FILE_OPEN] = true;
+	oargs.tp_of_interest.tp[SECURITY_BPRM_CREDS_FOR_EXEC] = true;
+	oargs.tp_of_interest.tp[SECURITY_INODE_UNLINK] = true;
+	oargs.tp_of_interest.tp[SECURITY_SOCKET_ACCEPT] = true;
+	oargs.tp_of_interest.tp[SECURITY_SOCKET_BIND] = true;
+	oargs.tp_of_interest.tp[SECURITY_SOCKET_CONNECT] = true;
+	oargs.tp_of_interest.tp[SECURITY_SOCKET_CREATE] = true;
+	oargs.tp_of_interest.tp[SECURITY_SOCKET_LISTEN] = true;
+	oargs.tp_of_interest.tp[SECURITY_SB_MOUNT] = true;
+
+	int i = 0;
+	for(i = 0; simple_set[i] != -1; i++)
 	{
 		oargs.ppm_sc_of_interest.ppm_sc[simple_set[i]] = true;
 	}
@@ -888,6 +911,10 @@ void parse_CLI_options(int argc, char** argv)
 		{
 			enable_simple_set();
 		}
+		if(!strcmp(argv[i], LSM_SET_OPTION))
+		{
+			enable_LSM_set();
+		}
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
@@ -895,7 +922,7 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], VALIDATION_OPTION))
 		{
-			if (validate_syscalls())
+			if(validate_syscalls())
 			{
 				exit(EXIT_SUCCESS);
 			}
