@@ -25,7 +25,8 @@ limitations under the License.
 #include "util.h"
 
 #ifndef WIN32
-extern "C" {
+extern "C"
+{
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -51,6 +52,10 @@ string file_path = "";
 string bpf_path = "";
 string output_fields_json = "";
 unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+sinsp* p_inspector;
+static unsigned long number_of_timeouts;  /* Times in which there were no events in the buffer. */
+static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
+static uint64_t g_nevts;		  /* total number of events captured. */
 
 sinsp_evt* get_event(sinsp& inspector);
 
@@ -64,6 +69,35 @@ static sinsp_evt_formatter* net_formatter = nullptr;
 static void sigint_handler(int signum)
 {
 	g_interrupted = true;
+	scap_stats s = {0};
+	p_inspector->get_capture_stats(&s);
+
+	printf("\n---------------------- STATS -----------------------\n");
+	printf("Events correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
+	printf("Seen by driver: %" PRIu64 "\n", s.n_evts);
+	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
+	printf("Number of timeouts: %ld\n", number_of_timeouts);
+	printf("Number of 'next' calls: %ld\n", number_of_scap_next);
+	printf("Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_enter);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_exit);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_execve_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_execve_enter);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_execve_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_execve_exit);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_connect_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_connect_enter);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_connect_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_connect_exit);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_open_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_open_enter);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_open_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_open_exit);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_dir_file_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_dir_file_enter);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_dir_file_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_dir_file_exit);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_other_interest_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_other_interest_enter);
+	printf("Number of dropped events caused by full buffer (n_drops_buffer_other_interest_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_other_interest_exit);
+	printf("Number of dropped events caused by full scratch map: %" PRIu64 "\n", s.n_drops_scratch_map);
+	printf("Number of dropped events caused by invalid memory access (page faults): %" PRIu64 "\n", s.n_drops_pf);
+	printf("Number of dropped events caused by an invalid condition in the kernel instrumentation (bug): %" PRIu64 "\n", s.n_drops_bug);
+	printf("Number of preemptions: %" PRIu64 "\n", s.n_preemptions);
+	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
+	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
+	printf("-----------------------------------------------------\n");
 }
 
 static void usage()
@@ -206,7 +240,7 @@ void open_engine(sinsp& inspector)
 
 static void remove_module()
 {
-	if (rmmod("scap", 0) != 0)
+	if(rmmod("scap", 0) != 0)
 	{
 		cerr << "[ERROR] Failed to remove kernel module" << strerror(errno) << endl;
 	}
@@ -218,8 +252,8 @@ static bool insert_module()
 	if(engine_string.compare(KMOD_ENGINE))
 		return true;
 
-	char *driver_path = getenv("KERNEL_MODULE");
-	if (driver_path == NULL || *driver_path == '\0')
+	char* driver_path = getenv("KERNEL_MODULE");
+	if(driver_path == NULL || *driver_path == '\0')
 	{
 		// We don't have a path set, assuming the kernel module is already there
 		return true;
@@ -227,11 +261,11 @@ static bool insert_module()
 
 	int res;
 	int fd = open(driver_path, O_RDONLY);
-	if (fd < 0)
+	if(fd < 0)
 		goto error;
 
 	res = insmod(fd, "", 0);
-	if (res != 0)
+	if(res != 0)
 		goto error;
 
 	atexit(remove_module);
@@ -241,7 +275,7 @@ static bool insert_module()
 error:
 	cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
 
-	if (fd > 0)
+	if(fd > 0)
 	{
 		close(fd);
 	}
@@ -259,6 +293,7 @@ int main(int argc, char** argv)
 {
 	sinsp inspector;
 	dump = plaintext_dump;
+	p_inspector = &inspector;
 
 #ifndef WIN32
 	parse_CLI_options(inspector, argc, argv);
@@ -266,7 +301,7 @@ int main(int argc, char** argv)
 #ifdef __linux__
 	// Try inserting the kernel module
 	bool res = insert_module();
-	if (!res)
+	if(!res)
 	{
 		return -1;
 	}
@@ -315,9 +350,17 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 
 	int32_t res = inspector.next(&ev);
 
+	number_of_scap_next++;
+
 	if(res == SCAP_SUCCESS)
 	{
+		g_nevts++;
 		return ev;
+	}
+
+	if(res == SCAP_TIMEOUT)
+	{
+		number_of_timeouts++;
 	}
 
 	if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT)
@@ -411,7 +454,7 @@ void plaintext_dump(sinsp& inspector)
 
 void json_dump_init(sinsp& inspector)
 {
-	if (!json_dump_init_success)
+	if(!json_dump_init_success)
 	{
 		dump = json_dump;
 		inspector.set_buffer_format(sinsp_evt::PF_JSON);
@@ -425,7 +468,7 @@ void json_dump_init(sinsp& inspector)
 
 void json_dump_reinit_evt_formatter(sinsp& inspector)
 {
-	if (!output_fields_json.empty() && json_dump_init_success)
+	if(!output_fields_json.empty() && json_dump_init_success)
 	{
 		default_formatter = new sinsp_evt_formatter(&inspector, output_fields_json);
 		process_formatter = new sinsp_evt_formatter(&inspector, output_fields_json);
