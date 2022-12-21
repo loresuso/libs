@@ -514,6 +514,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_GROUP_DELETED_E:
 		parse_group_evt(evt);
 		break;
+	case PPME_SECURITY_BPRM_CREDS_FOR_EXEC_X:
+		parse_security_bprm_creds_for_exec(evt);
+		break;
 	default:
 		break;
 	}
@@ -1795,8 +1798,14 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
-		parinfo = evt->get_param(13);
-		evt->m_tinfo->m_comm = parinfo->m_val;
+		// We retrieve comm only if it wasn't already set by 
+		// security_bprm_creds_for_exec parser.
+		if(evt->m_tinfo->m_comm.empty())
+		{
+			std::cout << "should not enter here" << std::endl;
+			parinfo = evt->get_param(13);
+			evt->m_tinfo->m_comm = parinfo->m_val;
+		}
 		break;
 	default:
 		ASSERT(false);
@@ -1944,12 +1953,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	 * only from version `EXECVE_18_E`.
 	 * Moreover if we are not able to retrieve the enter event 
 	 * we can do nothing.
+	 * Furthermore, if the exepath for the current thread has 
+	 * already been set, that means that security_bprm_creds_for_exec
+	 * have set it, and we should not overwrite it.
 	 */
 	if((etype == PPME_SYSCALL_EXECVE_18_X ||
 		etype == PPME_SYSCALL_EXECVE_19_X ||
 		etype == PPME_SYSCALL_EXECVEAT_X)
 		&&
-		retrieve_enter_event(enter_evt, evt))
+		retrieve_enter_event(enter_evt, evt)
+		&& 
+		evt->m_tinfo->m_exepath.empty())
 	{
 		char fullpath[SCAP_MAX_PATH_SIZE] = {0};
 	
@@ -5820,6 +5834,23 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt)
 		tinfo->m_cap_permitted = max_caps;
 		tinfo->m_cap_effective = max_caps;
 	}
+}
+
+void sinsp_parser::parse_security_bprm_creds_for_exec(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	sinsp_threadinfo *tinfo;
+	string filename;
+
+	tinfo = evt->m_tinfo;
+
+	parinfo = evt->get_param(0);
+	filename = string(parinfo->m_val);
+	
+	tinfo->m_exepath = filename;
+	tinfo->m_comm = filename.substr(filename.find_last_of("/") + 1);
+
+	std::cout << filename << std::endl << tinfo->m_comm << std::endl;
 }
 
 void sinsp_parser::free_event_buffer(uint8_t *ptr)

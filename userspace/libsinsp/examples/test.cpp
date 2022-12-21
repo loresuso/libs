@@ -223,6 +223,8 @@ void open_engine(sinsp& inspector)
 	}
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
+		// enable LSM hooks
+		tp_set.insert(10);
 		inspector.open_modern_bpf(buffer_bytes_dim, ppm_sc, tp_set);
 	}
 	else
