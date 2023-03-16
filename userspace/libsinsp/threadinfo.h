@@ -34,6 +34,7 @@ struct iovec {
 #include <memory>
 #include <set>
 #include "fdinfo.h"
+#include "state/table.h"
 #include "internal_metrics.h"
 
 class sinsp_delays_info;
@@ -64,11 +65,16 @@ typedef struct erase_fd_params
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo
+class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::base_table::entry
 {
 public:
 	sinsp_threadinfo(sinsp *inspector = nullptr);
+	sinsp_threadinfo(
+		const std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list>& dynamic_fields,
+		sinsp *inspector = nullptr);
 	virtual ~sinsp_threadinfo();
+
+	libsinsp::state::fixed_struct::field_info_list fixed_fields() const override;
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -505,13 +511,19 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-class threadinfo_map_t
+class threadinfo_map_t: public libsinsp::state::table<uint64_t, sinsp_threadinfo>
 {
 public:
 	typedef std::function<bool(const sinsp_threadinfo&)> const_visitor_t;
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
+	threadinfo_map_t(sinsp* inspector):
+		m_threads(),
+		m_inspector(inspector),
+		m_dynamic_fields(std::make_shared<libsinsp::state::dynamic_struct::field_info_list>()),
+        m_fixed_fields(new_entry()->fixed_fields()) { }
+	
 	inline void put(sinsp_threadinfo* tinfo)
 	{
 		m_threads[tinfo->m_tid] = ptr_t(tinfo);
@@ -576,8 +588,76 @@ public:
 		return m_threads.size();
 	}
 
+	// -- implementation of libsinsp::state::table
+
+	const std::string& name() const override
+	{
+		static std::string name = "syscall_threads";
+		// todo(jasondellaluce): standardize table names
+		return name;
+	}
+
+    size_t entries_count() const override
+	{
+		return size();
+	}
+
+    void clear_entries() override
+	{
+		return clear();
+	}
+
+    const libsinsp::state::fixed_struct::field_info_list& fixed_fields() const override
+	{
+		return m_fixed_fields;
+	}
+
+    const std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list>& dynamic_fields() override
+	{
+		return m_dynamic_fields;
+	}
+
+	std::unique_ptr<sinsp_threadinfo> new_entry() const override;
+
+    sinsp_threadinfo* get_entry(const uint64_t& key) override
+	{
+		return get(key);
+	}
+
+    sinsp_threadinfo* add_entry(const uint64_t& key, std::unique_ptr<sinsp_threadinfo> value) override
+	{
+		ptr_t p = std::move(value);
+		m_threads[key] = p;
+		return p.get();
+	}
+
+    bool erase_entry(const uint64_t& key) override
+	{
+		auto p = get(key);
+		erase(key);
+		return p != nullptr;
+	}
+
+	// todo(jasondellaluce): reduce duplication, this is the same as loop()
+    bool foreach_entry(std::function<bool(sinsp_threadinfo* e)> pred) const override
+	{
+		for (auto& it : m_threads)
+		{
+			if (!pred(it.second.get()))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 protected:
 	std::unordered_map<int64_t, ptr_t> m_threads;
+
+private:
+	sinsp* m_inspector;
+	std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list> m_dynamic_fields;
+	libsinsp::state::fixed_struct::field_info_list m_fixed_fields;
 };
 
 

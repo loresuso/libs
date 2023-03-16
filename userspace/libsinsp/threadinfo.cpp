@@ -45,6 +45,15 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector) :
+	sinsp_threadinfo(std::make_shared<libsinsp::state::dynamic_struct::field_info_list>(), inspector)
+{
+	
+}
+
+sinsp_threadinfo::sinsp_threadinfo(
+		const std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list>& dynamic_fields,
+		sinsp *inspector):
+	libsinsp::state::base_table::entry(dynamic_fields),
 	m_cgroups(new cgroups_t),
 	m_tracer_parser(NULL),
 	m_inspector(inspector),
@@ -927,6 +936,7 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 	}
 }
 
+// todo(jasondellaluce): make this use libsinsp::state::dynamic_struct
 void sinsp_threadinfo::allocate_private_state()
 {
 	uint32_t j = 0;
@@ -1368,11 +1378,33 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 	}
 }
 
+libsinsp::state::fixed_struct::field_info_list sinsp_threadinfo::fixed_fields() const
+{
+	// todo(jasondellaluce): add the rest of the state fields
+	// todo(jasondellaluce): figure out if/how to represent other non-trivial
+	//                       field types (e.g. user info, cgroups, ...)
+	fixed_struct::field_info_list ret;
+	ret.add_info(this, m_tid, "tid");
+	ret.add_info(this, m_pid, "pid");
+	ret.add_info(this, m_ptid, "ptid");
+	ret.add_info(this, m_comm, "comm");
+	ret.add_info(this, m_exe, "exe");
+	ret.add_info(this, m_exepath, "exepath");
+	return ret;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<sinsp_threadinfo> threadinfo_map_t::new_entry() const
+{
+	return std::unique_ptr<sinsp_threadinfo>(m_inspector->build_threadinfo());
+}
+
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
-	: m_max_thread_table_size(m_thread_table_absolute_max_size)
+	: m_threadtable(inspector),
+	  m_max_thread_table_size(m_thread_table_absolute_max_size)
 {
 	m_inspector = inspector;
 	clear();
