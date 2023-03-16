@@ -17,6 +17,8 @@ limitations under the License.
 
 #pragma once
 
+#include "sinsp_exception.h"
+
 #include <string>
 #include <unordered_map>
 #include <exception>

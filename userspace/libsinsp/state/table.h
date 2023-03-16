@@ -17,8 +17,9 @@ limitations under the License.
 
 #pragma once
 
-#include "fixed_struct.h"
-#include "dynamic_struct.h"
+#include "sinsp_exception.h"
+#include "state/fixed_struct.h"
+#include "state/dynamic_struct.h"
 
 namespace libsinsp {
 namespace state {

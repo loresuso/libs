@@ -17,6 +17,8 @@ limitations under the License.
 
 #pragma once
 
+#include "sinsp_exception.h"
+
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -156,7 +158,7 @@ public:
         /**
          * @brief Adds metadata for a new field to the list. An exception is
          * thrown if two fields are defined with the same name and with
-         * different types, otherwise the previous definition is returned.
+         * incompatible types, otherwise the previous definition is returned.
          * 
          * @tparam T Type of the field.
          * @param name Display name of the field.
@@ -172,7 +174,7 @@ public:
             {
                 if (*it->second.info() != typeid(T))
                 {
-                    throw std::runtime_error("multiple definitions of extension field with different types: " + name);
+                    throw std::runtime_error("multiple definitions of extension field with incompatible types: " + name);
                 }
                 return it->second;
             }

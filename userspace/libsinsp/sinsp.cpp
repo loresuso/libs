@@ -169,6 +169,9 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_replay_scap_evt = NULL;
 
 	m_plugin_manager = new sinsp_plugin_manager();
+
+	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
+	m_table_registry->add_table(m_thread_manager->get_threads()->name(), m_thread_manager->get_threads());
 }
 
 sinsp::~sinsp()

@@ -57,6 +57,7 @@ limitations under the License.
 #include "filter/escaping.h"
 #include "filter/ppm_codes.h"
 #include "filter/parser.h"
+#include "state/table_registry.h"
 
 #include <string>
 #include <map>
@@ -970,6 +971,11 @@ public:
 	const std::string& get_host_root() const { return m_host_root; }
 	void set_host_root(const std::string& s) { m_host_root = s; }
 
+	const std::shared_ptr<libsinsp::state::table_registry> get_table_registry() const
+	{
+		return m_table_registry;
+	}
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1284,6 +1290,9 @@ public:
 	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
 	// information of the replayed scap event.
 	uint16_t m_replay_scap_cpuid;
+	//
+	// A registry for all the state tables owned by the inspector
+	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
 	bool m_inited;
 	static std::atomic<int> instance_count;
