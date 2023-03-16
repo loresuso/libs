@@ -971,7 +971,7 @@ public:
 	const std::string& get_host_root() const { return m_host_root; }
 	void set_host_root(const std::string& s) { m_host_root = s; }
 
-	const std::shared_ptr<libsinsp::state::table_registry> get_table_registry() const
+	const std::shared_ptr<libsinsp::state::table_registry>& get_table_registry() const
 	{
 		return m_table_registry;
 	}

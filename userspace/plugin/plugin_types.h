@@ -160,6 +160,50 @@ typedef void ss_plugin_t;
 //
 typedef void ss_instance_t;
 
+// --- STATE STUFF todo(jasondellaluce): clear up docs for this part
+
+// Opaque a pointer to the owner of a plugin. It can be used to invert the
+// control and invoke functions of the owner from within the plugin.
+typedef void ss_plugin_owner_t;
+
+// Opaque a pointer to a state table
+typedef void ss_plugin_table_t;
+
+// Opaque a pointer to an entry of a state table
+typedef void ss_plugin_table_entry_t;
+
+// Opaque a accessor to a field of a state table, which can be used
+// on any entry of that table
+typedef void ss_plugin_table_field_t;
+
+// Types supported by entry fields of state tables
+typedef enum ss_plugin_table_type
+{
+    UINT64,
+    STRING,
+} ss_plugin_table_type;
+
+// Data representation of entry fields of state tables
+typedef union ss_plugin_table_data
+{
+    uint64_t u64;
+    const char* str;
+} ss_plugin_table_data;
+
+// Info about a state table
+typedef struct ss_plugin_table_info
+{
+    const char* name;
+    ss_plugin_table_type key_type;
+} ss_plugin_table_info;
+
+// Info about a field of entries of a state table
+typedef struct ss_plugin_table_fieldinfo
+{
+    const char* name;
+    ss_plugin_table_type field_type;
+} ss_plugin_table_fieldinfo;
+
 #ifdef __cplusplus
 }
 #endif

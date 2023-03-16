@@ -1702,7 +1702,7 @@ void sinsp::set_statsd_port(const uint16_t port)
 std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath)
 {
 	std::string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, errstr);
+	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, get_table_registry(), errstr);
 	if (!plugin)
 	{
 		throw sinsp_exception("cannot load plugin " + filepath + ": " + errstr.c_str());

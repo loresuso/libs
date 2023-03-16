@@ -28,6 +28,7 @@ limitations under the License.
 #include "event.h"
 #include "version.h"
 #include "../plugin/plugin_loader.h"
+#include "state/table_registry.h"
 
 // todo(jasondellaluce: remove this forward declaration)
 class sinsp_filter_check;
@@ -108,6 +109,7 @@ public:
 	// set with an error.
 	static std::shared_ptr<sinsp_plugin> create(
 		const std::string &filepath,
+		const std::shared_ptr<libsinsp::state::table_registry>& table_registry,
 		std::string &errstr);
 
 	// Return whether a filesystem object is loaded
@@ -117,7 +119,7 @@ public:
 	// its exported fields. Returns NULL otherwise
 	static sinsp_filter_check* new_filtercheck(std::shared_ptr<sinsp_plugin> plugin);
 
-	sinsp_plugin(plugin_handle_t* handle);
+	sinsp_plugin(plugin_handle_t* handle, const std::shared_ptr<libsinsp::state::table_registry>& table_registry);
 	virtual ~sinsp_plugin();
 
 	/** Common API **/
@@ -166,8 +168,18 @@ private:
 	std::vector<filtercheck_field_info> m_fields;
 	std::set<std::string> m_extract_event_sources;
 
+	/** State management **/
+	struct
+	{
+		std::shared_ptr<libsinsp::state::table_registry> m_registry;
+		std::vector<ss_plugin_table_info> m_table_list;
+	} m_tables;
+
 	void validate_init_config(std::string& config);
 	bool resolve_dylib_symbols(std::string &errstr);
 	void resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf);
 	void validate_init_config_json_schema(std::string& config, std::string &schema);
+
+	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
+	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_table_type key_type);
 };

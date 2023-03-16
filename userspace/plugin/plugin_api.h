@@ -39,6 +39,43 @@ extern "C" {
 #define PLUGIN_API_VERSION          PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
 #define PLUGIN_API_VERSION_STR      EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
 
+
+// --- STATE STUFF todo(jasondellaluce): clear up docs for this part
+
+// Vtable for controlling fields of entries of a state table
+typedef struct
+{
+    ss_plugin_table_fieldinfo* (*list_fields)(const ss_plugin_table_t* t, uint32_t* nfields);
+    ss_plugin_table_field_t* (*get_field)(const ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
+    ss_plugin_table_field_t* (*add_field)(const ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
+}
+plugin_table_field_api;
+
+// Vtable for controlling a state table in read mode
+typedef struct
+{
+    const char*	(*get_name)(const ss_plugin_table_t* t);
+    uint32_t *(*get_size)(const ss_plugin_table_t* t); // todo(jasondellaluce): uint64?
+    ss_plugin_table_entry_t* (*get_entry)(const ss_plugin_table_t* t, const ss_plugin_table_data* key);
+    bool (*foreach_entry)(const ss_plugin_table_t*, bool (*iterator)(const ss_plugin_table_entry_t*));
+    void (*read_entry_field)(const ss_plugin_table_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_entry_t* out);
+}
+plugin_table_read_api;
+
+// todo(jasondellaluce): plugin_table_write_api_t
+
+typedef struct
+{
+    ss_plugin_table_info* (*list_tables)(ss_plugin_owner_t* o, uint32_t* ntables);
+    ss_plugin_table_t* (*get_table)(ss_plugin_owner_t* o, const char* name, ss_plugin_table_type key_type);
+    plugin_table_field_api* (*get_table_field_initializer)(ss_plugin_owner_t* o, ss_plugin_table_t* t);
+    // todo(jasondellaluce): add_table
+}
+plugin_table_init_api;
+
+// --- END OF STATE STUFF todo(jasondellaluce): clear up docs for this part
+
+
 //
 // The struct below define the functions and arguments for plugins capabilities:
 // * event sourcing
@@ -118,7 +155,7 @@ typedef struct
 	// If a non-NULL ss_plugin_t* state is returned, then subsequent invocations
 	// of init() must not return the same ss_plugin_t* value again, if not after
 	// it has been disposed with destroy() first.
-	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc);
+	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc, ss_plugin_owner_t* owner, plugin_table_init_api* table_init);
 
 	//
 	// Destroy the plugin and, if plugin state was allocated, free it.

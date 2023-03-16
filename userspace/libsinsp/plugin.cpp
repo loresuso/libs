@@ -51,8 +51,30 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
+static ss_plugin_table_type type_info_to_plugin_table_type(const std::type_info * i)
+{
+	if (*i == typeid(uint64_t))
+		return ss_plugin_table_type::UINT64;
+	if (*i == typeid(std::string))
+		return ss_plugin_table_type::STRING; // todo(jasondellaluce): const char* as well?
+	throw sinsp_exception("can't convert type info to plugin table type: " + std::string(i->name()));
+}
+
+static const std::type_info* plugin_table_type_to_type_info(ss_plugin_table_type t)
+{
+	switch (t)
+	{
+		case ss_plugin_table_type::UINT64:
+			return &typeid(uint64_t);
+		case ss_plugin_table_type::STRING:
+			return &typeid(std::string);
+	}
+	throw sinsp_exception("can't convert plugin table type to type info: " + std::to_string(t));
+}
+
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	const std::string &filepath,
+	const std::shared_ptr<libsinsp::state::table_registry>& table_registry,
 	std::string &errstr)
 {
 	char loadererr[PLUGIN_MAX_ERRLEN];
@@ -63,7 +85,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle));
+	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle, table_registry));
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
@@ -83,10 +105,13 @@ bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
 	return plugin_is_loaded(filepath.c_str());
 }
 
-sinsp_plugin::sinsp_plugin(plugin_handle_t* handle)
-	: m_state(nullptr), m_caps(CAP_NONE), m_handle(handle), m_id(-1)
+sinsp_plugin::sinsp_plugin(
+	plugin_handle_t* handle,
+	const std::shared_ptr<libsinsp::state::table_registry>& table_registry)
+	: m_state(nullptr), m_caps(CAP_NONE), m_handle(handle), m_id(-1), m_tables()
 {
 	m_fields.clear();
+	m_tables.m_registry = table_registry;
 }
 
 sinsp_plugin::~sinsp_plugin()
@@ -94,6 +119,39 @@ sinsp_plugin::~sinsp_plugin()
 	destroy();
 	plugin_unload(m_handle);
 	m_fields.clear();
+}
+
+ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables)
+{
+	auto& t = static_cast<sinsp_plugin*>(o)->m_tables;
+	t.m_table_list.clear();
+
+	for (const auto &d : t.m_registry->tables())
+	{
+		ss_plugin_table_info info;
+		info.name = d.second->name().c_str();
+		info.key_type = type_info_to_plugin_table_type(d.second->key_info());
+		t.m_table_list.push_back(info);
+	}
+
+	*ntables = t.m_table_list.size();
+	return t.m_table_list.data();
+}
+
+ss_plugin_table_t *sinsp_plugin::table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_table_type key_type)
+{
+	// todo(jasondellaluce): remove typing from registry tables
+	// auto& t = static_cast<sinsp_plugin*>(o)->m_tables;
+	// switch (key_type)
+	// {
+	// 	case ss_plugin_table_type::UINT64:
+	// 		return t.m_registry->get_table<uint64_t>(name);
+	// 	case ss_plugin_table_type::STRING:
+	// 		return t.m_registry->get_table<std::string>(name);
+	// 	default:
+	// 		throw sinsp_exception("can't convert type info to plugin table type: " + std::string(i->name()));
+	// }
+	return NULL;
 }
 
 bool sinsp_plugin::init(const std::string &config, std::string &errstr)
@@ -108,7 +166,12 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	std::string conf = config;
 	validate_init_config(conf);
 
-	ss_plugin_t *state = m_handle->api.init(conf.c_str(), &rc);
+	plugin_table_init_api table_api;
+	table_api.get_table = sinsp_plugin::table_api_get_table;
+	table_api.list_tables = sinsp_plugin::table_api_list_tables;
+	// todo: pass initializer too
+
+	ss_plugin_t *state = m_handle->api.init(conf.c_str(), &rc, this, &table_api);
 	if (state != NULL)
 	{
 		// Plugins can return a state even if the result code is
