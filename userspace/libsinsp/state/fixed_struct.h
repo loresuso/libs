@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_exception.h"
+#include "type_info.h"
 
 #include <string>
 #include <unordered_map>
@@ -37,7 +38,33 @@ class fixed_struct
 {
 public:
     /**
-     * @brief An accessor for accessing a fixed field of a struct.
+     * @brief An weakly-typed accessor for accessing a fixed field of a struct.
+     */
+    class raw_accessor_t
+    {
+    public:
+        raw_accessor_t(size_t o, const libsinsp::state::type_info& t)
+            : m_offset(o), m_info(t) { };
+        ~raw_accessor_t() = default;
+        raw_accessor_t(raw_accessor_t&&) = default;
+        raw_accessor_t& operator = (raw_accessor_t&&) = default;
+        raw_accessor_t(const raw_accessor_t& s) = default;
+        raw_accessor_t& operator = (const raw_accessor_t& s) = default;
+
+        const libsinsp::state::type_info& info() const
+        {
+            return m_info;
+        }
+
+    private:
+        size_t m_offset;
+        libsinsp::state::type_info m_info;
+
+        friend class fixed_struct;
+    };
+
+    /**
+     * @brief An strongly-typed accessor for accessing a fixed field of a struct.
      * @tparam T Type of the field.
      * 
      * @note The current implementation is equivalent to a simple
@@ -46,7 +73,21 @@ public:
      * when using the accessor for accessing a field (just one, and
      * is compiler-dependent).
      */
-    template<typename T> struct accessor_t { size_t offset = 0; };
+    template<typename T> class accessor_t
+    {
+    public:
+        accessor_t(size_t o): m_offset(o) { };
+        ~accessor_t() = default;
+        accessor_t(accessor_t&&) = default;
+        accessor_t& operator = (accessor_t&&) = default;
+        accessor_t(const accessor_t& s) = default;
+        accessor_t& operator = (const accessor_t& s) = default;
+        
+    private:
+        size_t m_offset = 0;
+
+        friend class fixed_struct;
+    };
 
     /**
      * @brief Metadata info about a given fixed field of a struct.
@@ -66,7 +107,7 @@ public:
         template<typename T>
         static field_info create(const std::string& name, size_t offset)
         {
-            return field_info(sizeof(T), offset, name, typeid(T));
+            return field_info(name, offset, libsinsp::state::type_info::of<T>());
         }
 
         ~field_info() = default;
@@ -80,42 +121,52 @@ public:
             return m_name;
         }
 
-        const std::type_info* info() const
+        const libsinsp::state::type_info& info() const
         {
             return m_info;
         }
 
-        size_t size() const
-        {
-            return m_size;
-        }
-
         /**
-         * @brief Returns an accessor for the given field, that can be used
-         * to access the field's memory in all instances of structs
-         * where the field is defined.
+         * @brief Returns a weakly-typed accessor for the given field,
+         * that can be used to access the field's memory in all instances of
+         * structs where the field is defined.
          * 
          * @tparam T Type of the field.
          * @return accessor_t<T> Memory accessor for the field.
          */
-        template<typename T> 
+        raw_accessor_t raw_accessor() const
+        {
+            return raw_accessor_t(m_offset, info());
+        }
+
+        /**
+         * @brief Returns a strongly-typed accessor for the given field,
+         * that can be used to access the field's memory in all instances of
+         * structs where the field is defined.
+         * 
+         * @tparam T Type of the field.
+         * @return accessor_t<T> Memory accessor for the field.
+         */
+        template <typename T>
         accessor_t<T> accessor() const
         {
-            if (typeid(T) != *m_info)
+            auto t = libsinsp::state::type_info::of<T>();
+            if (!info().is_compatible(t))
             {
-                throw std::runtime_error("incompatible type for fixed struct field accessor: " + m_name);
+                throw sinsp_exception(
+                    "fixed struct field incompatible accessor: " + m_name
+                    + ", type=" + info().name() + ", access=" + t.name());
             }
-            return accessor_t<T>{m_offset};
+            return accessor_t<T>(m_offset);
         }
 
     private:
-        field_info(size_t size, size_t offset, std::string name, const std::type_info& info)
-            : m_size(size), m_offset(offset), m_name(name), m_info(&info) { }
+        field_info(std::string name, size_t offset, const libsinsp::state::type_info& info)
+            : m_name(name), m_offset(offset), m_info(info) { }
         
-        size_t m_size;
-        size_t m_offset;
         std::string m_name;
-        const std::type_info* m_info;
+        size_t m_offset;
+        libsinsp::state::type_info m_info;
     };
 
 
@@ -152,7 +203,7 @@ public:
             const auto &it = m_definitions.find(name);
             if (it != m_definitions.end())
             {
-                throw std::runtime_error("multiple definitions of fixed field in struct: " + name);
+                throw sinsp_exception("multiple definitions of fixed field in struct: " + name);
             }
 
             // todo(jasondellaluce): add safety boundary checks here
@@ -165,27 +216,12 @@ public:
         std::unordered_map<std::string, field_info> m_definitions;
     };
 
-
-    fixed_struct(void* this_ptr): m_this_ptr((uintptr_t) this_ptr) { } 
+    fixed_struct() = default;
     virtual ~fixed_struct() = default;
     fixed_struct(fixed_struct&&) = default;
     fixed_struct& operator = (fixed_struct&&) = default;
     fixed_struct(const fixed_struct& s) = default;
     fixed_struct& operator = (const fixed_struct& s) = default;
-
-    /**
-     * @brief Get a memory reference to a given fixed field within a struct
-     * using an accessor.
-     * 
-     * @tparam T Type of the field.
-     * @param accessor Accessor previously-created from the field's metadata.
-     * @return T& Memory reference of the field within the given struct.
-     */
-    template <typename T>
-    inline T& get_fixed_field(const accessor_t<T>& accessor)
-    {
-        return *(reinterpret_cast<T*>(m_this_ptr + accessor.offset));
-    }
 
     /**
      * @brief Returns the list of metadata about the fixed fields
@@ -198,8 +234,31 @@ public:
      */
     virtual field_info_list fixed_fields() const = 0;
 
-private:
-    uintptr_t m_this_ptr;
+    /**
+     * @brief Get a memory reference to a given fixed field within a struct
+     * using an weakly-typed accessor.
+     * 
+     * @param accessor Accessor previously-created from the field's metadata.
+     * @return void* Memory pointer of the field within the given struct.
+     */
+    inline void* get_fixed_field(const raw_accessor_t& a) const
+    {
+        return (void*) (((uintptr_t) this) + a.m_offset);
+    }
+
+    /**
+     * @brief Get a memory reference to a given fixed field within a struct
+     * using an strongly-typed accessor.
+     * 
+     * @tparam T Type of the field.
+     * @param accessor Accessor previously-created from the field's metadata.
+     * @return T& Memory reference of the field within the given struct.
+     */
+    template <typename T>
+    inline T& get_fixed_field(const accessor_t<T>& a) const
+    {
+        return *(reinterpret_cast<T*>((void*) (((uintptr_t) this) + a.m_offset)));
+    }
 };
 
 }; // state

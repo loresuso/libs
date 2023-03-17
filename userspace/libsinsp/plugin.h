@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -104,6 +104,37 @@ public:
 class sinsp_plugin: public sinsp_plugin_cap_sourcing, public sinsp_plugin_cap_extraction
 {
 public:
+	// interface for table apis of the plugin system
+	class table_api_view
+	{
+	public:
+		table_api_view() = default;
+		virtual ~table_api_view() = default;
+		table_api_view(table_api_view&&) = default;
+		table_api_view& operator = (table_api_view&&) = default;
+		table_api_view(const table_api_view& s) = delete;
+		table_api_view& operator = (const table_api_view& s) = delete;
+
+		// object-oriented version of plugin_table_field_api
+		virtual ss_plugin_table_fieldinfo* list_fields(uint32_t* nfields) = 0;
+		virtual ss_plugin_table_field_t* get_field(const char* name, ss_plugin_table_type data_type) = 0;
+		virtual ss_plugin_table_field_t* add_field(const char* name, ss_plugin_table_type data_type) = 0;
+
+		// object-oriented version of plugin_table_read_api
+		virtual const char*	get_name() = 0;
+		virtual uint32_t get_size() = 0;
+		virtual ss_plugin_table_entry_t* get_entry(const ss_plugin_table_data* key) = 0;
+		virtual bool foreach_entry(bool (*iterator)(ss_plugin_table_entry_t*)) = 0;
+		virtual void read_entry_field(ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_data* out) = 0;
+
+		// object-oriented version of plugin_table_write_api
+		virtual void clear() = 0;
+		virtual bool erase_entry(const ss_plugin_table_data* key) = 0;
+		virtual ss_plugin_table_entry_t* create_entry() = 0;
+		virtual ss_plugin_table_entry_t* add_entry(const ss_plugin_table_data* key, ss_plugin_table_entry_t* entry) = 0;
+		virtual void write_entry_field(ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_table_data* in) = 0;
+	};
+
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == nullptr and errstr is
 	// set with an error.
@@ -169,17 +200,20 @@ private:
 	std::set<std::string> m_extract_event_sources;
 
 	/** State management **/
-	struct
-	{
-		std::shared_ptr<libsinsp::state::table_registry> m_registry;
-		std::vector<ss_plugin_table_info> m_table_list;
-	} m_tables;
+	std::vector<ss_plugin_table_info> m_table_list;
+	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
+	std::unordered_map<std::string, std::unique_ptr<table_api_view>> m_table_views;
 
 	void validate_init_config(std::string& config);
 	bool resolve_dylib_symbols(std::string &errstr);
 	void resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf);
 	void validate_init_config_json_schema(std::string& config, std::string &schema);
 
+	// wraps a sinsp table
+	template <typename T>
+	static std::unique_ptr<table_api_view> table_get_api_view(libsinsp::state::table<T>* t);
+	
 	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_table_type key_type);
+	static ss_plugin_table_fieldinfo* table_field_api_list_fields(ss_plugin_table_t *t, uint32_t *nfields);
 };

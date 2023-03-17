@@ -45,31 +45,43 @@ extern "C" {
 // Vtable for controlling fields of entries of a state table
 typedef struct
 {
-    ss_plugin_table_fieldinfo* (*list_fields)(const ss_plugin_table_t* t, uint32_t* nfields);
-    ss_plugin_table_field_t* (*get_field)(const ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
-    ss_plugin_table_field_t* (*add_field)(const ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
+    ss_plugin_table_fieldinfo* (*list_fields)(ss_plugin_table_t* t, uint32_t* nfields);
+    ss_plugin_table_field_t* (*get_field)(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
+    ss_plugin_table_field_t* (*add_field)(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
 }
 plugin_table_field_api;
 
 // Vtable for controlling a state table in read mode
 typedef struct
 {
-    const char*	(*get_name)(const ss_plugin_table_t* t);
-    uint32_t *(*get_size)(const ss_plugin_table_t* t); // todo(jasondellaluce): uint64?
-    ss_plugin_table_entry_t* (*get_entry)(const ss_plugin_table_t* t, const ss_plugin_table_data* key);
-    bool (*foreach_entry)(const ss_plugin_table_t*, bool (*iterator)(const ss_plugin_table_entry_t*));
-    void (*read_entry_field)(const ss_plugin_table_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_entry_t* out);
+    const char*	(*get_name)(ss_plugin_table_t* t);
+    uint32_t (*get_size)(ss_plugin_table_t* t); // todo(jasondellaluce): uint64?
+    ss_plugin_table_entry_t* (*get_entry)(ss_plugin_table_t* t, const ss_plugin_table_data* key);
+    bool (*foreach_entry)(ss_plugin_table_t* t, bool (*iterator)(ss_plugin_table_entry_t*)); // todo(jasondellaluce): remove this
+    void (*read_entry_field)(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_data* out);
 }
 plugin_table_read_api;
 
-// todo(jasondellaluce): plugin_table_write_api_t
+// Vtable for controlling a state table in write mode
+typedef struct
+{
+    void (*clear)(ss_plugin_table_t* t);
+    bool (*erase_entry)(ss_plugin_table_t* t, const ss_plugin_table_data* key);
+    ss_plugin_table_entry_t* (*create_entry)(ss_plugin_table_t* t);
+    ss_plugin_table_entry_t* (*add_entry)(ss_plugin_table_t* t, const ss_plugin_table_data* key, ss_plugin_table_entry_t* entry);
+    void (*write_entry_field)(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_table_data* in);
+}
+plugin_table_write_api;
 
+// Vtable for controlling a state table at initialization time
 typedef struct
 {
     ss_plugin_table_info* (*list_tables)(ss_plugin_owner_t* o, uint32_t* ntables);
     ss_plugin_table_t* (*get_table)(ss_plugin_owner_t* o, const char* name, ss_plugin_table_type key_type);
-    plugin_table_field_api* (*get_table_field_initializer)(ss_plugin_owner_t* o, ss_plugin_table_t* t);
-    // todo(jasondellaluce): add_table
+    plugin_table_field_api field_api;
+    // todo(jasondellaluce): add_table symbol
+	plugin_table_read_api read_api; // todo(jasondellaluce): remove this, debug purposes only
+	plugin_table_write_api write_api; // todo(jasondellaluce): remove this, debug purposes only
 }
 plugin_table_init_api;
 

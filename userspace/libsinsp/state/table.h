@@ -24,6 +24,22 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
+    
+/**
+ * @brief Base class for entries of a state table.
+ */
+struct table_entry: public fixed_struct, dynamic_struct
+{
+    table_entry(const std::shared_ptr<dynamic_struct::field_info_list>& dynamic_fields)
+        : fixed_struct(), dynamic_struct(dynamic_fields) { }
+    table_entry(): table_entry(nullptr) { }
+    virtual ~table_entry() = default;
+    table_entry(table_entry&&) = default;
+    table_entry& operator = (table_entry&&) = default;
+    table_entry(const table_entry& s) = default;
+    table_entry& operator = (const table_entry& s) = default;
+};
+
 /**
  * @brief Base non-templated interface for state tables, defining
  * type-independent properties common to all tables.
@@ -31,60 +47,21 @@ namespace state {
 class base_table
 {
 public:
-    /**
-     * @brief Base class for entries of a table. This needs to be extended
-     * by the value data types of the table entries of a given typed table.
-     */
-    struct entry: public fixed_struct, dynamic_struct
-    {
-        entry(const std::shared_ptr<dynamic_struct::field_info_list>& dynamic_fields)
-            : fixed_struct(this), dynamic_struct(dynamic_fields) { }
-        virtual ~entry() = default;
-        entry(entry&&) = default;
-        entry& operator = (entry&&) = default;
-        entry(const entry& s) = default;
-        entry& operator = (const entry& s) = default;
-    };
+    base_table(const libsinsp::state::type_info& key_info): m_key_info(key_info) { }
 
-    base_table(const std::type_info& key_info, const std::type_info& value_info)
-        : m_key_info(&key_info), m_value_info(&value_info) { }
     virtual ~base_table() = default;
     base_table(base_table&&) = default;
     base_table& operator = (base_table&&) = default;
     base_table(const base_table& s) = default;
     base_table& operator = (const base_table& s) = default;
-    
+
     /**
      * @brief Returns the non-null type info about the table's key. 
      */
-    const std::type_info* key_info() const
+    const libsinsp::state::type_info& key_info() const
     {
         return m_key_info;
     }
-
-    /**
-     * @brief Returns the non-null type info about the table's value. 
-     */
-    const std::type_info* value_info() const
-    {
-        return m_value_info;
-    }
-
-    /**
-     * @brief Returns the name of the table.
-     */
-    virtual const std::string& name() const = 0;
-
-    /**
-     * @brief Returns the number of entries present in the table.
-     */
-    virtual size_t entries_count() const = 0;
-
-    /**
-     * @brief Erase all the entries present in the table.
-     * After invoking this function, entries_count() will return true.
-     */
-    virtual void clear_entries() = 0;
 
     /**
      * @brief Returns the fields metadata list for the fixed fields defined
@@ -103,73 +80,29 @@ public:
      */
     virtual const std::shared_ptr<dynamic_struct::field_info_list>& dynamic_fields() = 0;
 
-private:
-    const std::type_info* m_key_info;
-    const std::type_info* m_value_info;
-};
+    /**
+     * @brief Returns the name of the table.
+     */
+    virtual const std::string& name() const = 0;
 
-/**
- * @brief Base interfaces for state tables, with strong templated type
- * definitions for both the table keys and entries types.
- */
-template <typename KeyType, typename DataType>
-class table: public base_table
-{
-    static_assert(
-        std::is_default_constructible<KeyType>(),
-        "table key type must have a default constructor");
-    static_assert(
-        std::is_base_of<base_table::entry, DataType>(),
-        "table data type must extend 'base_table::entry'");
+    /**
+     * @brief Returns the number of entries present in the table.
+     */
+    virtual size_t entries_count() const = 0;
 
-public:
-    table(): base_table(typeid(KeyType), typeid(DataType)) {}
-    virtual ~table() = default;
-    table(table&&) = default;
-    table& operator = (table&&) = default;
-    table(const table& s) = delete; // todo: should we make this copyable too?
-    table& operator = (const table& s) = delete;
-    
+    /**
+     * @brief Erase all the entries present in the table.
+     * After invoking this function, entries_count() will return true.
+     */
+    virtual void clear_entries() = 0;
+
     /**
      * @brief Allocates and returns a new entry for the table. This is just
      * a factory method, the entry will not automatically added to the table.
      * Once a new entry is allocated with this method, users must invoke
      * add_entry() in order to actually insert it in the table.
      */
-    virtual std::unique_ptr<DataType> new_entry() const = 0;
-
-    /**
-     * @brief Returns a pointer to an entry present in the table at the given
-     * key. The pointer is owned by the table, and will remain valid up until
-     * the table is destroyed or the entry is removed from the table.
-     * 
-     * @param key Key of the entry to be retrieved.
-     * @return DataType* Pointer to the entry if present in the table at the
-     * given key, and nullptr otherwise.
-     */
-    virtual DataType* get_entry(const KeyType& key) = 0;
-
-    /**
-     * @brief Inserts a new entry in the table with the given key. If another
-     * entry is already present with the same key, it gets replaced. After
-     * insertion, table will be come the owner of the entry's pointer.
-     * 
-     * @param key Key of the entry to be added.
-     * @param value Entry to be added with the given key.
-     * @return DataType* Non-null pointer to the newly-added entry, which will
-     * remain valid up until the table is destroyed or the entry is removed
-     * from the table.
-     */
-    virtual DataType* add_entry(const KeyType& key, std::unique_ptr<DataType> value) = 0;
-
-    /**
-     * @brief Removes an entry from the table with the given key.
-     * 
-     * @param key Key of the entry to be removed.
-     * @return true If an entry was present at the given key.
-     * @return false If an entry was not present at the given key.
-     */
-    virtual bool erase_entry(const KeyType& key) = 0;
+    virtual std::unique_ptr<table_entry> new_entry() const = 0;
 
     /**
      * @brief Iterates over all the entries contained in the table and invokes
@@ -181,7 +114,63 @@ public:
      * @return true If the iteration proceeded successfully for all the entries.
      * @return false If the iteration broke out.
      */
-    virtual bool foreach_entry(std::function<bool(DataType* e)> pred) const = 0;
+    virtual bool foreach_entry(std::function<bool(table_entry* e)> pred) = 0;
+
+private:
+    libsinsp::state::type_info m_key_info;
+};
+
+/**
+ * @brief Base interfaces for state tables, with strong templated type
+ * definitions for both the table keys and entries types.
+ */
+template <typename KeyType>
+class table: public base_table
+{
+    static_assert(
+        std::is_default_constructible<KeyType>(),
+        "table key type must have a default constructor");
+
+public:
+    table(): base_table(libsinsp::state::type_info::of<KeyType>()) {}
+    virtual ~table() = default;
+    table(table&&) = default;
+    table& operator = (table&&) = default;
+    table(const table& s) = delete; // todo: should we make this copyable too?
+    table& operator = (const table& s) = delete;
+
+    /**
+     * @brief Returns a pointer to an entry present in the table at the given
+     * key. The pointer is owned by the table, and will remain valid up until
+     * the table is destroyed or the entry is removed from the table.
+     * 
+     * @param key Key of the entry to be retrieved.
+     * @return table_entry* Pointer to the entry if present in the table at the
+     * given key, and nullptr otherwise.
+     */
+    virtual table_entry* get_entry(const KeyType& key) = 0;
+
+    /**
+     * @brief Inserts a new entry in the table with the given key. If another
+     * entry is already present with the same key, it gets replaced. After
+     * insertion, table will be come the owner of the entry's pointer.
+     * 
+     * @param key Key of the entry to be added.
+     * @param value Entry to be added with the given key.
+     * @return table_entry* Non-null pointer to the newly-added entry, which will
+     * remain valid up until the table is destroyed or the entry is removed
+     * from the table.
+     */
+    virtual table_entry* add_entry(const KeyType& key, std::unique_ptr<table_entry> value) = 0;
+
+    /**
+     * @brief Removes an entry from the table with the given key.
+     * 
+     * @param key Key of the entry to be removed.
+     * @return true If an entry was present at the given key.
+     * @return false If an entry was not present at the given key.
+     */
+    virtual bool erase_entry(const KeyType& key) = 0;
 };
 
 }; // state

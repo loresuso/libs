@@ -531,8 +531,10 @@ public:
 
 	sinsp_threadinfo* build_threadinfo()
     {
-        return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
+        auto ret = m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
                                           : new sinsp_threadinfo(this);
+
+		return ret;
     }
 
 	/*!

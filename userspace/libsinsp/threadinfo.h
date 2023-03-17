@@ -65,13 +65,10 @@ typedef struct erase_fd_params
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::base_table::entry
+class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::table_entry
 {
 public:
 	sinsp_threadinfo(sinsp *inspector = nullptr);
-	sinsp_threadinfo(
-		const std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list>& dynamic_fields,
-		sinsp *inspector = nullptr);
 	virtual ~sinsp_threadinfo();
 
 	libsinsp::state::fixed_struct::field_info_list fixed_fields() const override;
@@ -511,7 +508,7 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-class threadinfo_map_t: public libsinsp::state::table<uint64_t, sinsp_threadinfo>
+class threadinfo_map_t: public libsinsp::state::table<uint64_t>
 {
 public:
 	typedef std::function<bool(const sinsp_threadinfo&)> const_visitor_t;
@@ -617,16 +614,28 @@ public:
 		return m_dynamic_fields;
 	}
 
-	std::unique_ptr<sinsp_threadinfo> new_entry() const override;
+	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;
 
     sinsp_threadinfo* get_entry(const uint64_t& key) override
 	{
 		return get(key);
 	}
 
-    sinsp_threadinfo* add_entry(const uint64_t& key, std::unique_ptr<sinsp_threadinfo> value) override
+    libsinsp::state::table_entry* add_entry(const uint64_t& key, std::unique_ptr<libsinsp::state::table_entry> e) override
 	{
-		ptr_t p = std::move(value);
+		// todo(jasondellaluce): this needs to invoke add_thread.
+		// I think we should make thread_manager implement the table interface
+		// instead o this class
+		std::unique_ptr<sinsp_threadinfo> typed(static_cast<sinsp_threadinfo*>(e.release()));
+		ptr_t p = std::move(typed);
+		if (!p->dynamic_fields())
+		{
+			p->set_dynamic_fields(dynamic_fields());
+		}
+		else if (p->dynamic_fields() != dynamic_fields())
+		{
+			throw sinsp_exception("invalid threadinfo dynamic fields definition added in manager (2)");
+		}
 		m_threads[key] = p;
 		return p.get();
 	}
@@ -639,7 +648,7 @@ public:
 	}
 
 	// todo(jasondellaluce): reduce duplication, this is the same as loop()
-    bool foreach_entry(std::function<bool(sinsp_threadinfo* e)> pred) const override
+    bool foreach_entry(std::function<bool(libsinsp::state::table_entry* e)> pred) override
 	{
 		for (auto& it : m_threads)
 		{

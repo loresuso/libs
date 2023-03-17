@@ -177,8 +177,10 @@ typedef void ss_plugin_table_entry_t;
 typedef void ss_plugin_table_field_t;
 
 // Types supported by entry fields of state tables
+// todo(jasondellaluce): support all types defined in libsinsp
 typedef enum ss_plugin_table_type
 {
+	INT64,
     UINT64,
     STRING,
 } ss_plugin_table_type;
@@ -186,6 +188,7 @@ typedef enum ss_plugin_table_type
 // Data representation of entry fields of state tables
 typedef union ss_plugin_table_data
 {
+	int64_t s64;
     uint64_t u64;
     const char* str;
 } ss_plugin_table_data;

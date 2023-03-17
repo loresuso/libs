@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,25 +51,70 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-static ss_plugin_table_type type_info_to_plugin_table_type(const std::type_info * i)
+static ss_plugin_table_fieldinfo* table_api_list_fields(ss_plugin_table_t *t, uint32_t *nfields)
 {
-	if (*i == typeid(uint64_t))
-		return ss_plugin_table_type::UINT64;
-	if (*i == typeid(std::string))
-		return ss_plugin_table_type::STRING; // todo(jasondellaluce): const char* as well?
-	throw sinsp_exception("can't convert type info to plugin table type: " + std::string(i->name()));
+	// todo(jasondellaluce): check for exceptions in all the ones below too
+	return static_cast<sinsp_plugin::table_api_view*>(t)->list_fields(nfields);
 }
 
-static const std::type_info* plugin_table_type_to_type_info(ss_plugin_table_type t)
+static ss_plugin_table_field_t* table_api_get_field(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type)
 {
-	switch (t)
-	{
-		case ss_plugin_table_type::UINT64:
-			return &typeid(uint64_t);
-		case ss_plugin_table_type::STRING:
-			return &typeid(std::string);
-	}
-	throw sinsp_exception("can't convert plugin table type to type info: " + std::to_string(t));
+	return static_cast<sinsp_plugin::table_api_view*>(t)->get_field(name, data_type);
+}
+
+static ss_plugin_table_field_t* table_api_add_field(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->add_field(name, data_type);
+}
+
+static const char* table_api_get_name(ss_plugin_table_t* t)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->get_name();
+}
+
+static uint32_t table_api_get_size(ss_plugin_table_t* t)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->get_size();
+}
+
+static ss_plugin_table_entry_t* table_api_get_entry(ss_plugin_table_t* t, const ss_plugin_table_data* key)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->get_entry(key);
+}
+
+static bool table_api_foreach_entry(ss_plugin_table_t* t, bool (*iterator)(ss_plugin_table_entry_t*))
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->foreach_entry(iterator);
+}
+
+static void table_api_read_entry_field(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_data* out)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->read_entry_field(e, f, out);
+}
+
+static void table_api_clear(ss_plugin_table_t* t)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->clear();
+}
+
+static bool table_api_erase_entry(ss_plugin_table_t* t, const ss_plugin_table_data* key)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->erase_entry(key);
+}
+
+static ss_plugin_table_entry_t* table_api_create_entry(ss_plugin_table_t* t)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->create_entry();
+}
+
+static ss_plugin_table_entry_t* table_api_add_entry(ss_plugin_table_t* t, const ss_plugin_table_data* key, ss_plugin_table_entry_t* entry)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->add_entry(key, entry);
+}
+
+static void table_api_write_entry_field(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_table_data* in)
+{
+	return static_cast<sinsp_plugin::table_api_view*>(t)->write_entry_field(e, f, in);
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
@@ -108,10 +153,10 @@ bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
 sinsp_plugin::sinsp_plugin(
 	plugin_handle_t* handle,
 	const std::shared_ptr<libsinsp::state::table_registry>& table_registry)
-	: m_state(nullptr), m_caps(CAP_NONE), m_handle(handle), m_id(-1), m_tables()
+	: m_state(nullptr), m_caps(CAP_NONE), m_handle(handle), m_id(-1),
+	  m_table_list(), m_table_registry(table_registry), m_table_views()
 {
 	m_fields.clear();
-	m_tables.m_registry = table_registry;
 }
 
 sinsp_plugin::~sinsp_plugin()
@@ -119,39 +164,6 @@ sinsp_plugin::~sinsp_plugin()
 	destroy();
 	plugin_unload(m_handle);
 	m_fields.clear();
-}
-
-ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables)
-{
-	auto& t = static_cast<sinsp_plugin*>(o)->m_tables;
-	t.m_table_list.clear();
-
-	for (const auto &d : t.m_registry->tables())
-	{
-		ss_plugin_table_info info;
-		info.name = d.second->name().c_str();
-		info.key_type = type_info_to_plugin_table_type(d.second->key_info());
-		t.m_table_list.push_back(info);
-	}
-
-	*ntables = t.m_table_list.size();
-	return t.m_table_list.data();
-}
-
-ss_plugin_table_t *sinsp_plugin::table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_table_type key_type)
-{
-	// todo(jasondellaluce): remove typing from registry tables
-	// auto& t = static_cast<sinsp_plugin*>(o)->m_tables;
-	// switch (key_type)
-	// {
-	// 	case ss_plugin_table_type::UINT64:
-	// 		return t.m_registry->get_table<uint64_t>(name);
-	// 	case ss_plugin_table_type::STRING:
-	// 		return t.m_registry->get_table<std::string>(name);
-	// 	default:
-	// 		throw sinsp_exception("can't convert type info to plugin table type: " + std::string(i->name()));
-	// }
-	return NULL;
 }
 
 bool sinsp_plugin::init(const std::string &config, std::string &errstr)
@@ -166,10 +178,23 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	std::string conf = config;
 	validate_init_config(conf);
 
+	// todo(jasondellaluce): make these static
 	plugin_table_init_api table_api;
 	table_api.get_table = sinsp_plugin::table_api_get_table;
 	table_api.list_tables = sinsp_plugin::table_api_list_tables;
-	// todo: pass initializer too
+	table_api.field_api.list_fields = table_api_list_fields;
+	table_api.field_api.add_field = table_api_add_field;
+	table_api.field_api.get_field = table_api_get_field;
+	table_api.read_api.get_name = table_api_get_name;
+	table_api.read_api.get_size = table_api_get_size;
+	table_api.read_api.get_entry = table_api_get_entry;
+	table_api.read_api.foreach_entry = table_api_foreach_entry;
+	table_api.read_api.read_entry_field = table_api_read_entry_field;
+	table_api.write_api.clear = table_api_clear;
+	table_api.write_api.erase_entry = table_api_erase_entry;
+	table_api.write_api.create_entry = table_api_create_entry;
+	table_api.write_api.add_entry = table_api_add_entry;
+	table_api.write_api.write_entry_field = table_api_write_entry_field;
 
 	ss_plugin_t *state = m_handle->api.init(conf.c_str(), &rc, this, &table_api);
 	if (state != NULL)

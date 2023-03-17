@@ -19,6 +19,8 @@ limitations under the License.
 
 #include "sinsp_exception.h"
 
+#include "type_info.h"
+
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -39,10 +41,51 @@ class dynamic_struct
 {
 public:
     /**
-     * @brief An accessor for accessing a dynamic field of a struct.
+     * @brief An weakly-typed accessor for accessing a dynamic field of a struct.
      * @tparam T Type of the field.
      */
-    template<typename T> struct accessor_t { size_t index = 0; };
+    class raw_accessor_t
+    {
+    public:
+        raw_accessor_t(size_t i, const libsinsp::state::type_info& t)
+            : m_index(i), m_info(t) { };
+        ~raw_accessor_t() = default;
+        raw_accessor_t(raw_accessor_t&&) = default;
+        raw_accessor_t& operator = (raw_accessor_t&&) = default;
+        raw_accessor_t(const raw_accessor_t& s) = default;
+        raw_accessor_t& operator = (const raw_accessor_t& s) = default;
+
+        const libsinsp::state::type_info& info() const
+        {
+            return m_info;
+        }
+
+    private:
+        size_t m_index = 0;
+        libsinsp::state::type_info m_info;
+
+        friend class dynamic_struct;
+    };
+
+    /**
+     * @brief An strongly-typed accessor for accessing a dynamic field of a struct.
+     * @tparam T Type of the field.
+     */
+    template<typename T> class accessor_t
+    {
+    public:
+        accessor_t(size_t i): m_index(i) { };
+        ~accessor_t() = default;
+        accessor_t(accessor_t&&) = default;
+        accessor_t& operator = (accessor_t&&) = default;
+        accessor_t(const accessor_t& s) = default;
+        accessor_t& operator = (const accessor_t& s) = default;
+
+    private:
+        size_t m_index = 0;
+
+        friend class dynamic_struct;
+    };
 
     /**
      * @brief Metadata info about a given dynamic field of a struct.
@@ -62,17 +105,7 @@ public:
         template<typename T>
         static field_info create(const std::string& name, size_t index)
         {
-            return field_info(
-                sizeof(T), index, name,
-                [](void* buf)
-                {
-                    std::allocator<T>().construct(reinterpret_cast<T*>(buf));
-                },
-                [](void* buf)
-                {
-                    std::allocator<T>().destroy(reinterpret_cast<T*>(buf));
-                },
-                typeid(T));
+            return field_info(name, index, libsinsp::state::type_info::of<T>());
         }
         ~field_info() = default;
         field_info(field_info&&) = default;
@@ -85,18 +118,25 @@ public:
             return m_name;
         }
 
-        const std::type_info* info() const
+        const libsinsp::state::type_info& info() const
         {
             return m_info;
         }
 
-        size_t size() const
+        /**
+         * @brief Returns a weakly-typed accessor for the given field, that can be used
+         * to access the field's memory in all instances of structs
+         * where the field is defined.
+         * 
+         * @return raw_accessor_t Memory accessor for the field.
+         */
+        raw_accessor_t raw_accessor() const
         {
-            return m_size;
+            return raw_accessor_t(m_index, info());
         }
 
         /**
-         * @brief Returns an accessor for the given field, that can be used
+         * @brief Returns a strongly-typed accessor for the given field, that can be used
          * to access the field's memory in all instances of structs
          * where the field is defined.
          * 
@@ -106,37 +146,23 @@ public:
         template<typename T> 
         accessor_t<T> accessor() const
         {
-            if (typeid(T) != *m_info)
+            auto t = libsinsp::state::type_info::of<T>();
+            if (!info().is_compatible(t))
             {
-                throw std::runtime_error("extension field accessed with incompatible types: " + m_name);
+                throw sinsp_exception(
+                    "dynamic struct field incompatible accessor: " + m_name
+                    + ", type=" + info().name() + ", access=" + t.name());
             }
-            return accessor_t<T>{m_index};
+            return accessor_t<T>(m_index, info());
         }
 
     private:
-        using alloc_func_t = std::function<void(void*)>;
-
-        field_info(size_t size, size_t index, std::string name,
-            alloc_func_t cons, alloc_func_t destr, const std::type_info& info)
-            : m_size(size), m_index(index), m_name(name), 
-            m_construct(cons), m_destroy(destr), m_info(&info) { }
-
-        void construct(void* p) const noexcept 
-        {
-            if (m_construct != nullptr) m_construct(p);
-        }
-
-        void destroy(void* p) const noexcept 
-        {
-            if (m_destroy != nullptr) m_destroy(p);
-        }
+        field_info(std::string name, size_t index, const libsinsp::state::type_info& info)
+            : m_name(name), m_index(index), m_info(info) { }
         
-        size_t m_size;
-        size_t m_index;
         std::string m_name;
-        alloc_func_t m_construct;
-        alloc_func_t m_destroy;
-        const std::type_info* m_info;
+        size_t m_index;
+        libsinsp::state::type_info m_info;
 
         friend class dynamic_struct;
     };
@@ -172,9 +198,11 @@ public:
             const auto &it = m_definitions.find(name);
             if (it != m_definitions.end())
             {
-                if (*it->second.info() != typeid(T))
+                auto t = libsinsp::state::type_info::of<T>();
+                if (!it->second.info().is_compatible(t))
                 {
-                    throw std::runtime_error("multiple definitions of extension field with incompatible types: " + name);
+                    throw sinsp_exception("dynamic field multiple defs with incompatible types: "
+                    + name + ", prevtype=" + it->second.info().name() + ", newtype=" + t.name());
                 }
                 return it->second;
             }
@@ -186,15 +214,15 @@ public:
 
     private:
         std::unordered_map<std::string, field_info> m_definitions;
-
-        // internal optimization to ensure ordered access
         std::vector<const field_info*> m_definitions_ordered;
         friend class dynamic_struct;
     };
-
-
+    
     dynamic_struct(const std::shared_ptr<field_info_list>& dynamic_fields)
         : m_fields_len(0), m_fields(), m_dynamic_fields(dynamic_fields) { }
+    
+    dynamic_struct(): dynamic_struct(nullptr) { }
+
     dynamic_struct(dynamic_struct&&) = default;
     dynamic_struct& operator = (dynamic_struct&&) = default;
     dynamic_struct(const dynamic_struct& s) = default;
@@ -202,39 +230,14 @@ public:
 
     virtual ~dynamic_struct()
     {
-        for (size_t i = 0; i < m_fields.size(); i++)
+        if (m_dynamic_fields)
         {
-            m_dynamic_fields->m_definitions_ordered[i]->destroy(m_fields[i]);
-            free(m_fields[i]);
+            for (size_t i = 0; i < m_fields.size(); i++)
+            {
+                m_dynamic_fields->m_definitions_ordered[i]->info().destroy(m_fields[i]);
+                free(m_fields[i]);
+            }
         }
-    }
-
-    /**
-     * @brief Get a memory reference to a given dynamic field within a struct
-     * using an accessor.
-     * 
-     * @tparam T Type of the field.
-     * @param accessor Accessor previously-created from the field's metadata.
-     * @return T& Memory reference of the field within the given struct.
-     */
-    template <typename T>
-    inline T& get_dynamic_field(const accessor_t<T>& accessor)
-    {
-        // todo: add safety checks on m_dynamic_fields->m_definitions_ordered.size()
-        // todo: can we chack that dynamic_fields are the same or do we trust this?
-        if (accessor.index >= m_dynamic_fields->m_definitions_ordered.size())
-        {
-            throw std::runtime_error("dynamic_fields definition access overflow: " + std::to_string(accessor.index));
-        }
-        while (m_fields_len <= accessor.index)
-        {
-            auto def = m_dynamic_fields->m_definitions_ordered[m_fields_len];
-            void* fieldbuf = malloc(def->size());
-            def->construct(fieldbuf);
-            m_fields.push_back(fieldbuf);
-            m_fields_len++;
-        }
-        return *(reinterpret_cast<T*>(m_fields[accessor.index]));
     }
 
     /**
@@ -244,13 +247,76 @@ public:
      * 
      * @return field_info_list List of field metadata.
      */
-    std::shared_ptr<field_info_list> dynamic_fields() const
+    const std::shared_ptr<field_info_list>& dynamic_fields() const
     {
         return m_dynamic_fields;
     }
 
+    /**
+     * @brief Sets the list of metadata about the dynamic fields
+     * defined and accessible for this struct. This needs to be shared
+     * across all instances of the same struct. The metadata list can only
+     * be set once, either through set_dynamic_fields or from the
+     * dynamic_struct constructor, otherwise an exception is thrown.
+     */
+    void set_dynamic_fields(const std::shared_ptr<field_info_list>& fields)
+    {
+        if (m_dynamic_fields)
+        {
+            throw sinsp_exception("dynamic fields can only be set once");
+        }
+        m_dynamic_fields = fields;
+    }
+
+    /**
+     * @brief Get a memory reference to a given fixed field within a struct
+     * using an weakly-typed accessor.
+     * 
+     * @param accessor Accessor previously-created from the field's metadata.
+     * @return void* Memory pointer of the field within the given struct.
+     */
+    inline void* get_dynamic_field(const raw_accessor_t& a)
+    {
+        return _get_dynamic_field(a.m_index);
+    }
+
+    /**
+     * @brief Get a memory reference to a given fixed field within a struct
+     * using an strongly-typed accessor.
+     * 
+     * @tparam T Type of the field.
+     * @param accessor Accessor previously-created from the field's metadata.
+     * @return T& Memory reference of the field within the given struct.
+     */
+    template <typename T>
+    inline T& get_dynamic_field(const accessor_t<T>& a)
+    {
+        return *(reinterpret_cast<T*>(_get_dynamic_field(a.m_index)));
+    }
+
 private:
-    static void deleter_type(void*) { }
+    inline void* _get_dynamic_field(size_t index)
+    {
+        if (!m_dynamic_fields)
+        {
+            throw sinsp_exception("dynamic struct has null field definitions");
+        }
+        // todo: add safety checks on m_dynamic_fields->m_definitions_ordered.size()
+        // todo: can we chack that dynamic_fields are the same or do we trust this?
+        if (index >= m_dynamic_fields->m_definitions_ordered.size())
+        {
+            throw sinsp_exception("dynamic struct access overflow: " + std::to_string(index));
+        }
+        while (m_fields_len <= index)
+        {
+            auto def = m_dynamic_fields->m_definitions_ordered[m_fields_len];
+            void* fieldbuf = malloc(def->info().size());
+            def->info().construct(fieldbuf);
+            m_fields.push_back(fieldbuf);
+            m_fields_len++;
+        }
+        return m_fields[index];
+    }
 
     size_t m_fields_len;
     std::vector<void*> m_fields;

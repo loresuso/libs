@@ -45,15 +45,7 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector) :
-	sinsp_threadinfo(std::make_shared<libsinsp::state::dynamic_struct::field_info_list>(), inspector)
-{
-	
-}
-
-sinsp_threadinfo::sinsp_threadinfo(
-		const std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list>& dynamic_fields,
-		sinsp *inspector):
-	libsinsp::state::base_table::entry(dynamic_fields),
+	table_entry(nullptr),
 	m_cgroups(new cgroups_t),
 	m_tracer_parser(NULL),
 	m_inspector(inspector),
@@ -1397,9 +1389,10 @@ libsinsp::state::fixed_struct::field_info_list sinsp_threadinfo::fixed_fields() 
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<sinsp_threadinfo> threadinfo_map_t::new_entry() const
+std::unique_ptr<libsinsp::state::table_entry> threadinfo_map_t::new_entry() const
 {
-	return std::unique_ptr<sinsp_threadinfo>(m_inspector->build_threadinfo());
+	auto t = m_inspector->build_threadinfo();
+	return std::unique_ptr<libsinsp::state::table_entry>(t);
 }
 
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
@@ -1478,9 +1471,18 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 		increment_mainthread_childcount(threadinfo);
 	}
 
+	if (!threadinfo->dynamic_fields())
+	{
+		threadinfo->set_dynamic_fields(m_threadtable.dynamic_fields());
+	}
+	else if (threadinfo->dynamic_fields() != m_threadtable.dynamic_fields())
+	{
+		throw sinsp_exception("invalid threadinfo dynamic fields definition added in manager");
+	}
+
 	threadinfo->compute_program_hash();
 	threadinfo->allocate_private_state();
-	m_threadtable.put(threadinfo);
+	m_threadtable.put(threadinfo);	
 
 	return true;
 }

@@ -57,23 +57,21 @@ public:
      * template.
      * 
      * @tparam KeyType Type of the table's key.
-     * @tparam DataType Type of the table's entries.
      * @param name Name of the table.
-     * @return table<KeyType, DataType>* Pointer to the registered table,
+     * @return table<KeyType>* Pointer to the registered table,
      * or nullptr if no table is registered by the given name.
      */
-    template <typename KeyType, typename DataType>
-    table<KeyType, DataType>* get_table(const std::string& name) const
+    template <typename KeyType>
+    table<KeyType>* get_table(const std::string& name) const
     {
         const auto &it = m_tables.find(name);
         if (it != m_tables.end())
         {
-            if (*it->second->key_info() != typeid(KeyType)
-                || *it->second->value_info() != typeid(DataType))
+            if (!it->second->key_info().is_compatible(libsinsp::state::type_info::of<KeyType>()))
             {
                 throw std::runtime_error("registered table accessed with incompatible types: " + name);
             }
-            return static_cast<table<KeyType, DataType>*>(it->second);
+            return static_cast<table<KeyType>*>(it->second);
         }
         return nullptr;
     }
@@ -86,24 +84,22 @@ public:
      * incompatible with the ones provided in the template.
      * 
      * @tparam KeyType Type of the table's key.
-     * @tparam DataType Type of the table's entries.
      * @param name Name of the table.
      * @param t Pointer to the table.
-     * @return table<KeyType, DataType>* Pointer to the registered table,
+     * @return table<KeyType>* Pointer to the registered table,
      * or a pointer to the already-existing table.
      */
-    template <typename KeyType, typename DataType>
-    table<KeyType, DataType>* add_table(const std::string& name, table<KeyType, DataType>* t)
+    template <typename KeyType>
+    table<KeyType>* add_table(const std::string& name, table<KeyType>* t)
     {
         const auto &it = m_tables.find(name);
         if (it != m_tables.end())
         {
-            if (*it->second->key_info() != typeid(KeyType)
-                || *it->second->value_info() != typeid(DataType))
+            if (!it->second->key_info().is_compatible(libsinsp::state::type_info::of<KeyType>()))
             {
                 throw std::runtime_error("multiple table registrations with incompatible types: " + name);
             }
-            return static_cast<table<KeyType, DataType>*>(it->second);
+            return static_cast<table<KeyType>*>(it->second);
         }
         m_tables.insert({ name, t });
         return t;
