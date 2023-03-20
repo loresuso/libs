@@ -176,6 +176,13 @@ public:
     class field_info_list
     {
     public:
+        field_info_list() = default;
+        virtual ~field_info_list() = default;
+        field_info_list(field_info_list&&) = default;
+        field_info_list& operator = (field_info_list&&) = default;
+        field_info_list(const field_info_list& s) = default;
+        field_info_list& operator = (const field_info_list& s) = default;
+
         inline const std::unordered_map<std::string, field_info>& infos() const
         {
             return m_definitions;
@@ -207,10 +214,17 @@ public:
                 return it->second;
             }
             m_definitions.insert({ name, field_info::create<T>(name, m_definitions.size()) });
-            auto& def = m_definitions.at(name);
+            const auto& def = m_definitions.at(name);
             m_definitions_ordered.push_back(&def);
+            on_after_add_info(def);
             return def;
         }
+    protected:
+        /**
+         * @brief Internally-invoked everytime a new info is added to the list,
+         * can be overridden in order to add custom logic.
+         */
+        virtual void on_after_add_info(const field_info& i) { }
 
     private:
         std::unordered_map<std::string, field_info> m_definitions;
@@ -247,7 +261,7 @@ public:
      * 
      * @return field_info_list List of field metadata.
      */
-    const std::shared_ptr<field_info_list>& dynamic_fields() const
+    std::shared_ptr<field_info_list> dynamic_fields() const
     {
         return m_dynamic_fields;
     }

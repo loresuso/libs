@@ -101,7 +101,7 @@ set(SINSP_SOURCES
 	plugin.cpp
 	plugin_manager.cpp
 	plugin_filtercheck.cpp
-	plugin_tables.cpp
+	plugin_table_api.cpp
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp

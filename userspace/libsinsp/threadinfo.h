@@ -609,7 +609,7 @@ public:
 		return m_fixed_fields;
 	}
 
-    const std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list>& dynamic_fields() override
+    std::shared_ptr<libsinsp::state::dynamic_struct::field_info_list> dynamic_fields() override
 	{
 		return m_dynamic_fields;
 	}

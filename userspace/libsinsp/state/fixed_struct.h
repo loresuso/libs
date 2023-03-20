@@ -179,6 +179,13 @@ public:
     class field_info_list
     {
     public:
+        field_info_list() = default;
+        virtual ~field_info_list() = default;
+        field_info_list(field_info_list&&) = default;
+        field_info_list& operator = (field_info_list&&) = default;
+        field_info_list(const field_info_list& s) = default;
+        field_info_list& operator = (const field_info_list& s) = default;
+        
         inline const std::unordered_map<std::string, field_info>& infos() const
         {
             return m_definitions;

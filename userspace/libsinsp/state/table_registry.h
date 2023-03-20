@@ -95,11 +95,7 @@ public:
         const auto &it = m_tables.find(name);
         if (it != m_tables.end())
         {
-            if (!it->second->key_info().is_compatible(libsinsp::state::type_info::of<KeyType>()))
-            {
-                throw std::runtime_error("multiple table registrations with incompatible types: " + name);
-            }
-            return static_cast<table<KeyType>*>(it->second);
+            throw std::runtime_error("table registered multiple tumes: " + name);
         }
         m_tables.insert({ name, t });
         return t;

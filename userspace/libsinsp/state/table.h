@@ -78,7 +78,7 @@ public:
      * be allocated and accessible for all the present and future entries
      * present in the table.
      */
-    virtual const std::shared_ptr<dynamic_struct::field_info_list>& dynamic_fields() = 0;
+    virtual std::shared_ptr<dynamic_struct::field_info_list> dynamic_fields() = 0;
 
     /**
      * @brief Returns the name of the table.

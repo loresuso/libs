@@ -42,6 +42,8 @@ extern "C" {
 
 // --- STATE STUFF todo(jasondellaluce): clear up docs for this part
 
+// todo(jasondellaluce): consistent error handling in all the vtables below
+
 // Vtable for controlling fields of entries of a state table
 typedef struct
 {
@@ -73,13 +75,25 @@ typedef struct
 }
 plugin_table_write_api;
 
+typedef struct
+{
+	const char* name;
+	ss_plugin_table_t* table;
+	ss_plugin_table_type key_type;
+	plugin_table_field_api field_api;
+	plugin_table_read_api read_api;
+	plugin_table_write_api write_api;
+}
+plugin_table_input;
+
 // Vtable for controlling a state table at initialization time
 typedef struct
 {
     ss_plugin_table_info* (*list_tables)(ss_plugin_owner_t* o, uint32_t* ntables);
     ss_plugin_table_t* (*get_table)(ss_plugin_owner_t* o, const char* name, ss_plugin_table_type key_type);
-    plugin_table_field_api field_api;
-    // todo(jasondellaluce): add_table symbol
+    void (*add_table)(ss_plugin_owner_t* o, plugin_table_input* input);
+
+	plugin_table_field_api field_api;
 	plugin_table_read_api read_api; // todo(jasondellaluce): remove this, debug purposes only
 	plugin_table_write_api write_api; // todo(jasondellaluce): remove this, debug purposes only
 }

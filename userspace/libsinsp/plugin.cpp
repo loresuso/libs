@@ -51,70 +51,89 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-static ss_plugin_table_fieldinfo* table_api_list_fields(ss_plugin_table_t *t, uint32_t *nfields)
+// the following table api symbols act as multiplexers for the table API
+// interface, which is implemented through the type plugin_table_input.
+// For sinsp-defined tables, the plugin_table_input is a wrapper around
+// the libsinsp::state::table interface. For plugin-defined tables, the
+// plugin_table_input is provided by the table-owner plugin itself.
+static ss_plugin_table_fieldinfo* dispatch_table_api_list_fields(ss_plugin_table_t *_t, uint32_t *nfields)
 {
 	// todo(jasondellaluce): check for exceptions in all the ones below too
-	return static_cast<sinsp_plugin::table_api_view*>(t)->list_fields(nfields);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->field_api.list_fields(t->table, nfields);
 }
 
-static ss_plugin_table_field_t* table_api_get_field(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type)
+static ss_plugin_table_field_t* dispatch_table_api_get_field(ss_plugin_table_t* _t, const char* name, ss_plugin_table_type data_type)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->get_field(name, data_type);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->field_api.get_field(t->table, name, data_type);
 }
 
-static ss_plugin_table_field_t* table_api_add_field(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type)
+static ss_plugin_table_field_t* dispatch_table_api_add_field(ss_plugin_table_t* _t, const char* name, ss_plugin_table_type data_type)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->add_field(name, data_type);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->field_api.add_field(t->table, name, data_type);
 }
 
-static const char* table_api_get_name(ss_plugin_table_t* t)
+static const char* dispatch_table_api_get_name(ss_plugin_table_t* _t)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->get_name();
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->read_api.get_name(t->table);
 }
 
-static uint32_t table_api_get_size(ss_plugin_table_t* t)
+static uint32_t dispatch_table_api_get_size(ss_plugin_table_t* _t)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->get_size();
+
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->read_api.get_size(t->table);
 }
 
-static ss_plugin_table_entry_t* table_api_get_entry(ss_plugin_table_t* t, const ss_plugin_table_data* key)
+static ss_plugin_table_entry_t* dispatch_table_api_get_entry(ss_plugin_table_t* _t, const ss_plugin_table_data* key)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->get_entry(key);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->read_api.get_entry(t->table, key);
 }
 
-static bool table_api_foreach_entry(ss_plugin_table_t* t, bool (*iterator)(ss_plugin_table_entry_t*))
+static bool dispatch_table_api_foreach_entry(ss_plugin_table_t* _t, bool (*iterator)(ss_plugin_table_entry_t*))
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->foreach_entry(iterator);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->read_api.foreach_entry(t->table, iterator);
 }
 
-static void table_api_read_entry_field(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_data* out)
+static void dispatch_table_api_read_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_table_data* out)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->read_entry_field(e, f, out);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->read_api.read_entry_field(t->table, e, f, out);
 }
 
-static void table_api_clear(ss_plugin_table_t* t)
+static void dispatch_table_api_clear(ss_plugin_table_t* _t)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->clear();
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->write_api.clear(t->table);
 }
 
-static bool table_api_erase_entry(ss_plugin_table_t* t, const ss_plugin_table_data* key)
+static bool dispatch_table_api_erase_entry(ss_plugin_table_t* _t, const ss_plugin_table_data* key)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->erase_entry(key);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->write_api.erase_entry(t->table, key);
 }
 
-static ss_plugin_table_entry_t* table_api_create_entry(ss_plugin_table_t* t)
+static ss_plugin_table_entry_t* dispatch_table_api_create_entry(ss_plugin_table_t* _t)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->create_entry();
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->write_api.create_entry(t->table);
 }
 
-static ss_plugin_table_entry_t* table_api_add_entry(ss_plugin_table_t* t, const ss_plugin_table_data* key, ss_plugin_table_entry_t* entry)
+static ss_plugin_table_entry_t* dispatch_table_api_add_entry(ss_plugin_table_t* _t, const ss_plugin_table_data* key, ss_plugin_table_entry_t* entry)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->add_entry(key, entry);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->write_api.add_entry(t->table, key, entry);
 }
 
-static void table_api_write_entry_field(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_table_data* in)
+static void dispatch_table_api_write_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_table_data* in)
 {
-	return static_cast<sinsp_plugin::table_api_view*>(t)->write_entry_field(e, f, in);
+	auto t = static_cast<plugin_table_input*>(_t);
+	return t->write_api.write_entry_field(t->table, e, f, in);
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
@@ -154,7 +173,7 @@ sinsp_plugin::sinsp_plugin(
 	plugin_handle_t* handle,
 	const std::shared_ptr<libsinsp::state::table_registry>& table_registry)
 	: m_state(nullptr), m_caps(CAP_NONE), m_handle(handle), m_id(-1),
-	  m_table_list(), m_table_registry(table_registry), m_table_views()
+	  m_table_infos(), m_table_registry(table_registry), m_tables(), m_owned_tables()
 {
 	m_fields.clear();
 }
@@ -178,23 +197,24 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	std::string conf = config;
 	validate_init_config(conf);
 
-	// todo(jasondellaluce): make these static
+	// todo(jasondellaluce): make these static?
 	plugin_table_init_api table_api;
+	table_api.add_table = sinsp_plugin::table_api_add_table;
 	table_api.get_table = sinsp_plugin::table_api_get_table;
 	table_api.list_tables = sinsp_plugin::table_api_list_tables;
-	table_api.field_api.list_fields = table_api_list_fields;
-	table_api.field_api.add_field = table_api_add_field;
-	table_api.field_api.get_field = table_api_get_field;
-	table_api.read_api.get_name = table_api_get_name;
-	table_api.read_api.get_size = table_api_get_size;
-	table_api.read_api.get_entry = table_api_get_entry;
-	table_api.read_api.foreach_entry = table_api_foreach_entry;
-	table_api.read_api.read_entry_field = table_api_read_entry_field;
-	table_api.write_api.clear = table_api_clear;
-	table_api.write_api.erase_entry = table_api_erase_entry;
-	table_api.write_api.create_entry = table_api_create_entry;
-	table_api.write_api.add_entry = table_api_add_entry;
-	table_api.write_api.write_entry_field = table_api_write_entry_field;
+	table_api.field_api.list_fields = dispatch_table_api_list_fields;
+	table_api.field_api.add_field = dispatch_table_api_add_field;
+	table_api.field_api.get_field = dispatch_table_api_get_field;
+	table_api.read_api.get_name = dispatch_table_api_get_name;
+	table_api.read_api.get_size = dispatch_table_api_get_size;
+	table_api.read_api.get_entry = dispatch_table_api_get_entry;
+	table_api.read_api.foreach_entry = dispatch_table_api_foreach_entry;
+	table_api.read_api.read_entry_field = dispatch_table_api_read_entry_field;
+	table_api.write_api.clear = dispatch_table_api_clear;
+	table_api.write_api.erase_entry = dispatch_table_api_erase_entry;
+	table_api.write_api.create_entry = dispatch_table_api_create_entry;
+	table_api.write_api.add_entry = dispatch_table_api_add_entry;
+	table_api.write_api.write_entry_field = dispatch_table_api_write_entry_field;
 
 	ss_plugin_t *state = m_handle->api.init(conf.c_str(), &rc, this, &table_api);
 	if (state != NULL)
