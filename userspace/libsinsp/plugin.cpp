@@ -185,6 +185,45 @@ sinsp_plugin::~sinsp_plugin()
 	m_fields.clear();
 }
 
+const plugin_table_init_api* sinsp_plugin::table_init_api()
+{
+	// todo(jasondellaluce): don't set values everytime
+	static plugin_table_init_api api;
+	api.add_table = sinsp_plugin::table_api_add_table;
+	api.get_table = sinsp_plugin::table_api_get_table;
+	api.list_tables = sinsp_plugin::table_api_list_tables;
+	api.field_api.list_fields = dispatch_table_api_list_fields;
+	api.field_api.add_field = dispatch_table_api_add_field;
+	api.field_api.get_field = dispatch_table_api_get_field;
+	api.read_api = *table_read_api();
+	api.write_api = *table_write_api();
+	return &api;
+}
+
+const plugin_table_read_api* sinsp_plugin::table_read_api()
+{
+	// todo(jasondellaluce): don't set values everytime
+	static plugin_table_read_api api;
+	api.get_name = dispatch_table_api_get_name;
+	api.get_size = dispatch_table_api_get_size;
+	api.get_entry = dispatch_table_api_get_entry;
+	api.foreach_entry = dispatch_table_api_foreach_entry;
+	api.read_entry_field = dispatch_table_api_read_entry_field;
+	return &api;
+}
+
+const plugin_table_write_api* sinsp_plugin::table_write_api()
+{
+	// todo(jasondellaluce): don't set values everytime
+	static plugin_table_write_api api;
+	api.clear = dispatch_table_api_clear;
+	api.erase_entry = dispatch_table_api_erase_entry;
+	api.create_entry = dispatch_table_api_create_entry;
+	api.add_entry = dispatch_table_api_add_entry;
+	api.write_entry_field = dispatch_table_api_write_entry_field;
+	return &api;
+}
+
 bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 {
 	if (!m_handle->api.init)
@@ -774,7 +813,7 @@ bool sinsp_plugin::extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_
 		return false;
 	}
 
-	return m_handle->api.extract_fields(m_state, &evt, num_fields, fields) == SS_PLUGIN_SUCCESS;
+	return m_handle->api.extract_fields(m_state, &evt, num_fields, fields, sinsp_plugin::table_read_api()) == SS_PLUGIN_SUCCESS;
 }
 
 bool sinsp_plugin::is_source_compatible(const std::string &source) const

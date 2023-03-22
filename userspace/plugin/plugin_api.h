@@ -181,7 +181,7 @@ typedef struct
 	// If a non-NULL ss_plugin_t* state is returned, then subsequent invocations
 	// of init() must not return the same ss_plugin_t* value again, if not after
 	// it has been disposed with destroy() first.
-	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc, ss_plugin_owner_t* owner, plugin_table_init_api* table_init);
+	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc, ss_plugin_owner_t* owner, const plugin_table_init_api* table_init);
 
 	//
 	// Destroy the plugin and, if plugin state was allocated, free it.
@@ -462,7 +462,7 @@ typedef struct
 		// If the plugin's event source is different than "syscall", then the
 		// event's data is encoded with the "extra" union scheme, otherwise
 		// it will be encoded with the "syscall" union scheme.
-		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
+		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields, const plugin_table_read_api* table_read);
 	};
 } plugin_api;
 

@@ -180,6 +180,9 @@ private:
 	void resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf);
 	void validate_init_config_json_schema(std::string& config, std::string &schema);
 
+	static const plugin_table_init_api* table_init_api();
+	static const plugin_table_read_api* table_read_api();
+	static const plugin_table_write_api* table_write_api();
 	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_table_type key_type);
 	static void table_api_add_table(ss_plugin_owner_t *o, plugin_table_input* input);
