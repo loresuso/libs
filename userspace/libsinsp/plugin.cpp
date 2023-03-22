@@ -630,6 +630,7 @@ scap_source_plugin& sinsp_plugin::as_scap_source()
 
 	m_scap_source_plugin.state = m_state;
 	m_scap_source_plugin.name = m_name.c_str();
+	m_scap_source_plugin.event_source_name = m_event_source.c_str();
 	m_scap_source_plugin.id = m_id;
 	m_scap_source_plugin.open = m_handle->api.open;
 	m_scap_source_plugin.close = m_handle->api.close;
@@ -675,9 +676,17 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 	{
 		ss_plugin_event pevt;
 		pevt.evtnum = evt->get_num();
-		pevt.data = data;
-		pevt.datalen = datalen;
-		pevt.ts = evt->get_ts();
+
+		if(evt->get_type() != PPME_PLUGINEVENT_E)
+		{
+			pevt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
+		}
+		else
+		{
+			pevt.evt.plugin.data = data;
+			pevt.evt.plugin.datalen = datalen;
+			pevt.evt.plugin.ts = evt->get_ts();
+		}
 		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &pevt));
 	}
 	if (ret.empty())

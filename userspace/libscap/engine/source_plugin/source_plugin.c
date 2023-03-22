@@ -88,6 +88,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 	handle->m_input_plugin_batch_evts = NULL;
 	handle->m_input_plugin_batch_idx = 0;
 	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
+	handle->m_is_syscall_source = strcmp(handle->m_input_plugin->event_source_name, "syscall") == 0;
 
 	if(rc != SCAP_SUCCESS)
 	{
@@ -164,12 +165,25 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 
 	res = SCAP_SUCCESS;
 
+	// the plugin actually produces events that respect the libscap definitions
+	if (handle->m_is_syscall_source)
+	{
+		scap_evt* evt = (scap_evt*) plugin_evt->evt.syscall;
+		if(evt->ts == UINT64_MAX)
+		{
+			evt->ts = get_timestamp_ns();
+		}
+		handle->m_nevts++;
+		*pevent = evt;
+		return res;
+	}
+
 	/*
 	 * | scap_evt | len_id (4B) | len_pl (4B) | id | payload |
 	 * Note: we need to use 4B for len_id too because the PPME_PLUGINEVENT_E has
 	 * EF_LARGE_PAYLOAD flag!
 	 */
-	uint32_t reqsize = sizeof(scap_evt) + 4 + 4 + 4 + plugin_evt->datalen;
+	uint32_t reqsize = sizeof(scap_evt) + 4 + 4 + 4 + plugin_evt->evt.plugin.datalen;
 	if(handle->m_input_plugin_evt_storage_len < reqsize)
 	{
 		uint8_t *tmp = (uint8_t*)realloc(handle->m_input_plugin_evt_storage, reqsize);
@@ -199,18 +213,18 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	memcpy(buf, &plugin_id_size, sizeof(plugin_id_size));
 	buf += sizeof(plugin_id_size);
 
-	uint32_t datalen = plugin_evt->datalen;
+	uint32_t datalen = plugin_evt->evt.plugin.datalen;
 	memcpy(buf, &(datalen), sizeof(datalen));
 	buf += sizeof(datalen);
 
 	memcpy(buf, &(handle->m_input_plugin->id), sizeof(handle->m_input_plugin->id));
 	buf += sizeof(handle->m_input_plugin->id);
 
-	memcpy(buf, plugin_evt->data, plugin_evt->datalen);
+	memcpy(buf, plugin_evt->evt.plugin.data, plugin_evt->evt.plugin.datalen);
 
-	if(plugin_evt->ts != UINT64_MAX)
+	if(plugin_evt->evt.plugin.ts != UINT64_MAX)
 	{
-		evt->ts = plugin_evt->ts;
+		evt->ts = plugin_evt->evt.plugin.ts;
 	}
 	else
 	{

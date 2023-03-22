@@ -28,7 +28,7 @@ extern "C" {
 // API versions of this plugin framework
 //
 #define PLUGIN_API_VERSION_MAJOR 2
-#define PLUGIN_API_VERSION_MINOR 0
+#define PLUGIN_API_VERSION_MINOR 1
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
@@ -254,6 +254,12 @@ typedef struct
 		// Example event sources would be strings like "aws_cloudtrail",
 		// "k8s_audit", etc. The source can be used by plugins with event
 		// sourcing capabilities to filter the events they receive.
+		// 
+		// If the plugin's event source is different than "syscall", then
+		// it will only produce events of type PPME_PLUGINEVENT_E (following
+		// the libscap type enumerative). If the plugin's event source is
+		// than "syscall", then it will only produce events of any of the types
+		// support by libscap.
 		//
 		const char* (*get_event_source)();
 
@@ -351,6 +357,10 @@ typedef struct
 		// If the returned pointer is non-NULL, then it must be uniquely
 		// attached to the ss_plugin_t* parameter value. The pointer must not
 		// be shared across multiple distinct ss_plugin_t* values.
+		//
+		// If the plugin's event source is different than "syscall", then the
+		// event's data is encoded with the "extra" union scheme, otherwise
+		// it will be encoded with the "syscall" union scheme.
 		const char* (*event_to_string)(ss_plugin_t *s, const ss_plugin_event *evt);
 
 		//
@@ -370,6 +380,10 @@ typedef struct
 		// The value of the ss_plugin_event** output parameter must be uniquely
 		// attached to the ss_instance_t* parameter value. The pointer must not
 		// be shared across multiple distinct ss_instance_t* values.
+		//
+		// If the plugin's event source is different than "syscall", then the
+		// event's data is encoded with the "extra" union scheme, otherwise
+		// it will be encoded with the "syscall" union scheme.
 		ss_plugin_rc (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
 	};
 
@@ -444,6 +458,10 @@ typedef struct
 		// The value of the ss_plugin_extract_field* output parameter must be
 		// uniquely attached to the ss_plugin_t* parameter value. The pointer
 		// must not be shared across multiple distinct ss_plugin_t* values.
+		//
+		// If the plugin's event source is different than "syscall", then the
+		// event's data is encoded with the "extra" union scheme, otherwise
+		// it will be encoded with the "syscall" union scheme.
 		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	};
 } plugin_api;

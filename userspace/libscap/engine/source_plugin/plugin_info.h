@@ -27,6 +27,7 @@ typedef struct
 {
 	uint32_t id;
 	const char *name;
+	const char *event_source_name;
 	ss_plugin_t *state;
 	ss_instance_t *handle;
 

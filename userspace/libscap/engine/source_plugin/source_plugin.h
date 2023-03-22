@@ -47,4 +47,7 @@ struct source_plugin_engine
 	// The return value from the last call to next_batch().
 	ss_plugin_rc m_input_plugin_last_batch_res;
 
+	// True if get_event_source() returns "syscall"
+	bool m_is_syscall_source;
+
 };

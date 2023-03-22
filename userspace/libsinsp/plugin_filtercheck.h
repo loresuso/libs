@@ -18,7 +18,6 @@ limitations under the License.
 #pragma once
 
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 #include "sinsp_int.h"
@@ -58,7 +57,8 @@ private:
 	char* m_arg_key;
 	uint64_t m_arg_index;
 	bool m_arg_present;
-	std::set<size_t>* m_compatible_sources = NULL;
+	std::vector<bool> m_compatible_plugin_sources_bitmap;
+	bool m_compatible_syscall_source;
 	std::shared_ptr<sinsp_plugin_cap_extraction> m_eplugin;
 
 	// extract_arg_index() extracts a valid index from the argument if 

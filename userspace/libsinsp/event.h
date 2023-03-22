@@ -568,6 +568,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
+	friend class sinsp_filter_check_plugin;
 	friend class sinsp_filter_check_thread;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
@@ -585,6 +586,7 @@ VISIBILITY_PRIVATE
 	friend class test_helpers::event_builder;
 	friend class test_helpers::sinsp_mock;
 	friend class sinsp_usergroup_manager;
+	friend class sinsp_plugin;
 };
 
 /*@}*/

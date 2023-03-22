@@ -30,7 +30,20 @@ limitations under the License.
 class sinsp_plugin_manager
 {
 public:
+	sinsp_plugin_manager():
+		m_plugins(),
+		m_source_names(),
+		m_plugins_id_index(),
+		m_plugins_id_source_index(),
+		m_last_id_in(-1),
+		m_last_id_out(-1),
+		m_last_source_in(-1),
+		m_last_source_out(-1) { }
 	virtual ~sinsp_plugin_manager();
+	sinsp_plugin_manager(sinsp_plugin_manager&&) = default;
+    sinsp_plugin_manager& operator = (sinsp_plugin_manager&&) = default;
+    sinsp_plugin_manager(const sinsp_plugin_manager& s) = delete;
+    sinsp_plugin_manager& operator = (const sinsp_plugin_manager& s) = delete;
 
 	/*!
 		\brief Adds a plugin in the manager
@@ -61,8 +74,17 @@ public:
 	*/
 	inline std::shared_ptr<sinsp_plugin> plugin_by_id(uint32_t plugin_id) const
 	{
-		auto it = m_plugins_id_index.find(plugin_id);
-		return it != m_plugins_id_index.end() ? m_plugins[it->second] : nullptr;
+		if (plugin_id != m_last_id_in)
+		{
+			auto it = m_plugins_id_index.find(plugin_id);
+			if(it == m_plugins_id_index.end())
+			{
+				return nullptr;
+			}
+			m_last_id_in = plugin_id;
+			m_last_id_out = it->second;
+		}
+		return m_plugins[m_last_id_out];
 	}
 
 	/*!
@@ -86,9 +108,19 @@ public:
 	*/
 	inline std::size_t source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const
 	{
-		auto it = m_plugins_id_source_index.find(plugin_id);
-		found = it != m_plugins_id_source_index.end();
-		return found ? it->second : 0;
+		if (plugin_id != m_last_id_in)
+		{
+			auto it = m_plugins_id_source_index.find(plugin_id);
+			if (it == m_plugins_id_source_index.end())
+			{
+				found = false;
+				return 0;
+			}
+			m_last_id_in = plugin_id;
+			m_last_id_out = it->second;
+		}
+		found = true;
+		return m_last_id_out;
 	}
 
 private:
@@ -96,4 +128,8 @@ private:
 	std::vector<std::string> m_source_names;
 	std::unordered_map<uint32_t, uint32_t> m_plugins_id_index;
 	std::unordered_map<uint32_t, uint32_t> m_plugins_id_source_index;
+	mutable uint32_t m_last_id_in;
+	mutable uint32_t m_last_id_out;
+	mutable uint32_t m_last_source_in;
+	mutable uint32_t m_last_source_out;
 };
