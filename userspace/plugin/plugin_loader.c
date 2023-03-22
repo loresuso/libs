@@ -108,6 +108,7 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     SYM_RESOLVE(ret, get_fields);
     SYM_RESOLVE(ret, extract_fields);
     SYM_RESOLVE(ret, get_extract_event_sources);
+    SYM_RESOLVE(ret, parse_event);
     return ret;
 }
 
@@ -210,6 +211,11 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
         && h->api.extract_fields != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_EXTRACTION);
+    }
+
+    if (h->api.parse_event != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_STATE);
     }
 
     return caps;

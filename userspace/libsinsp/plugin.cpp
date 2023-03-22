@@ -833,4 +833,13 @@ bool sinsp_plugin::is_source_compatible(const std::string &source) const
 	return m_extract_event_sources.find(source) != m_extract_event_sources.end();
 }
 
-/** **/
+/** End of Extractor CAP **/
+
+/** State Management CAP **/
+
+void sinsp_plugin::parse_event(ss_plugin_event &evt) const
+{
+	m_handle->api.parse_event(m_state, &evt, sinsp_plugin::table_read_api(), sinsp_plugin::table_write_api());
+}
+
+/** End of State Management CAP **/

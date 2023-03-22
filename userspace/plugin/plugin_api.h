@@ -464,6 +464,18 @@ typedef struct
 		// it will be encoded with the "syscall" union scheme.
 		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields, const plugin_table_read_api* table_read);
 	};
+
+	// State management capability API
+	struct
+	{
+		// todo(jasondellaluce): add an event type filter, and maybe
+		// use it for field extraction capability too
+		// todo(jasondellaluce): use "compatible_evt_sources" here as well
+
+		//
+		// todo(jasondellaluce): write documentation for this
+		ss_plugin_rc (*parse_event)(ss_plugin_t *s, const ss_plugin_event *evt, const plugin_table_read_api* table_read, const plugin_table_write_api* table_write);
+	};
 } plugin_api;
 
 #ifdef __cplusplus

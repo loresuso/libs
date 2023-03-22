@@ -98,10 +98,21 @@ public:
 	virtual bool is_source_compatible(const std::string &source) const = 0;
 };
 
+class sinsp_plugin_cap_state_management: public sinsp_plugin_cap_common
+{
+public:
+	virtual ~sinsp_plugin_cap_state_management() = default;
+
+	virtual void parse_event(ss_plugin_event &evt) const = 0;
+};
+
 // Class that holds a plugin.
 // it extends sinsp_plugin_cap itself because it exposes a
 // resolve_dylib_symbols() logic for common plugin symbols
-class sinsp_plugin: public sinsp_plugin_cap_sourcing, public sinsp_plugin_cap_extraction
+class sinsp_plugin:
+		public sinsp_plugin_cap_sourcing,
+		public sinsp_plugin_cap_extraction,
+		public sinsp_plugin_cap_state_management
 {
 public:
 	// Create a plugin from the dynamic library at the provided
@@ -147,6 +158,10 @@ public:
 	virtual bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const override;
 	virtual const std::vector<filtercheck_field_info>& fields() const override;
 	virtual bool is_source_compatible(const std::string &source) const override;
+
+	/** State Management **/
+	// todo(jasondellaluce): collect errors
+	virtual void parse_event(ss_plugin_event &evt) const override;
 
 private:
 	std::string m_name;

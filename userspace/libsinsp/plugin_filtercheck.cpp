@@ -172,8 +172,8 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 			const auto& sources = m_inspector->get_plugin_manager()->sources();
 			ASSERT(src_idx < sources.size());
 			const auto& source = sources[src_idx];
-			auto compatible = m_eplugin->extract_event_sources().find(source)
-				!= m_eplugin->extract_event_sources().end();
+			auto compatible = m_eplugin->extract_event_sources().empty()
+				|| m_eplugin->extract_event_sources().find(source) != m_eplugin->extract_event_sources().end();
 			m_compatible_plugin_sources_bitmap[src_idx] = compatible;
 		}
 

@@ -1442,6 +1442,31 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 #else
 	m_parser->process_event(evt);
+
+	// todo(jasondellaluce): put this logic in its own component
+	ss_plugin_event plugin_evt;
+	plugin_evt.evtnum = evt->get_num();
+	if (evt->get_type() == PPME_PLUGINEVENT_E)
+	{
+		auto plugin_parinfo = evt->get_param(1);
+		plugin_evt.evt.plugin.data = (uint8_t *) plugin_parinfo->m_val;
+		plugin_evt.evt.plugin.datalen = plugin_parinfo->m_len;
+		plugin_evt.evt.plugin.ts = evt->get_ts();
+	}
+	else
+	{
+		plugin_evt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
+	}
+
+	for (const auto& p : get_plugin_manager()->plugins())
+	{
+		// todo(jasondellaluce): avoid looping on all plugins and pre-compute
+		// this set beforehand
+		if (p->caps() & CAP_STATE)
+		{
+			p->parse_event(plugin_evt);
+		}
+	}
 #endif
 
 	//
