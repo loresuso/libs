@@ -584,6 +584,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 		if (m_extract_event_codes.empty())
 		{
 			m_extract_event_codes = libsinsp::events::all_event_set();
+			if (!is_source_compatible(m_extract_event_sources, "syscall"))
+			{
+				m_extract_event_codes = m_extract_event_codes.filter([](ppm_event_code e){
+					return libsinsp::events::is_plugin_event(e);
+				});
+			}
 		}
 	}
 
@@ -609,6 +615,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 		if (m_parse_event_codes.empty())
 		{
 			m_parse_event_codes = libsinsp::events::all_event_set();
+			if (!is_source_compatible(m_parse_event_sources, "syscall"))
+			{
+				m_parse_event_codes = m_parse_event_codes.filter([](ppm_event_code e){
+					return libsinsp::events::is_plugin_event(e);
+				});
+			}
 		}
 	}
 
@@ -763,13 +775,13 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 
 		if(evt->get_type() != PPME_PLUGINEVENT_E)
 		{
-			pevt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
+			pevt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
 		}
 		else
 		{
-			pevt.evt.plugin.data = data;
-			pevt.evt.plugin.datalen = datalen;
-			pevt.evt.plugin.ts = evt->get_ts();
+			pevt.plugin.data = data;
+			pevt.plugin.datalen = datalen;
+			pevt.plugin.ts = evt->get_ts();
 		}
 		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &pevt));
 	}
@@ -914,7 +926,7 @@ std::unique_ptr<sinsp_evt> sinsp_plugin::state_evt_to_sinsp_evt(const ss_plugin_
 	return std::unique_ptr<sinsp_evt>(evt);
 }
 
-bool sinsp_plugin::init_state_events(ss_plugin_owner_t* owner, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt)) const
+bool sinsp_plugin::init_state_events(ss_plugin_owner_t* owner, plugin_state_event_func push_evt) const
 {
 	if(!m_state || m_handle->api.init_state_events == NULL)
 	{

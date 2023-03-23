@@ -381,6 +381,7 @@ static ss_plugin_table_entry_t* table_api_create_entry(ss_plugin_table_t* _t)
 	// todo(jasondellaluce): find a better way to drag around a unique_ptr.
     // if someone creates an entry but don't add it into the table,
     // then it is a memory leak. We can also consider forbidding this.
+    // todo(jasondellaluce): create a destroy_entry function
     auto t = static_cast<sinsp_table_wrap*>(_t);
     libsinsp::state::table_entry* ret = nullptr;
     switch (t->m_key_type)

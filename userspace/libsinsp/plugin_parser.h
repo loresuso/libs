@@ -92,9 +92,9 @@ public:
 			}
 
 			parinfo = evt->get_param(1);
-			m_evt.evt.plugin.data = (uint8_t *) parinfo->m_val;
-			m_evt.evt.plugin.datalen = parinfo->m_len;
-			m_evt.evt.plugin.ts = evt->get_ts();
+			m_evt.plugin.data = (uint8_t *) parinfo->m_val;
+			m_evt.plugin.datalen = parinfo->m_len;
+			m_evt.plugin.ts = evt->get_ts();
 		}
 		else
 		{
@@ -102,7 +102,7 @@ public:
 			{
 				return false;
 			}
-			m_evt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
+			m_evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
 		}
 
 		return m_plugin->parse_event(m_evt);

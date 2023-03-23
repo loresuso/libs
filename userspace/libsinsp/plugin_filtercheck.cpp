@@ -154,7 +154,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		{
 			return false;
 		}
-		pevt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
+		pevt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
 		efield.source = "syscall";
 	}
 	else
@@ -196,9 +196,9 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		// Get the event payload
 		//
 		parinfo = evt->get_param(1);
-		pevt.evt.plugin.data = (uint8_t *) parinfo->m_val;
-		pevt.evt.plugin.datalen = parinfo->m_len;
-		pevt.evt.plugin.ts = evt->get_ts();
+		pevt.plugin.data = (uint8_t *) parinfo->m_val;
+		pevt.plugin.datalen = parinfo->m_len;
+		pevt.plugin.ts = evt->get_ts();
 
 		efield.source = m_inspector->get_plugin_manager()->sources()[psource].c_str();
 	}

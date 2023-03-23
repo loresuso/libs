@@ -170,7 +170,7 @@ ss_instance_t* plugin_open(ss_plugin_t* s, const char* params, int32_t* rc)
 	// Note: Using new/delete is okay, as long as the plugin
 	// framework is not deleting the memory.
 	instance_state *ret = new instance_state();
-    ret->evt.evt.syscall = (ss_plugin_syscall_event *) &ret->evt_buf;
+    ret->evt.syscall = (ss_plugin_syscall_event *) &ret->evt_buf;
 	*rc = SS_PLUGIN_SUCCESS;
 
 	return ret;
@@ -191,11 +191,11 @@ int32_t plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_
 
     *nevts = 1;
     *evts = &istate->evt;
-    istate->evt.evt.syscall->type = 3; // PPME_SYSCALL_OPEN_X
-    istate->evt.evt.syscall->tid = 1;
-    istate->evt.evt.syscall->ts = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-    istate->evt.evt.syscall->len = sizeof(ss_plugin_syscall_event);
-    istate->evt.evt.syscall->nparams = 6;
+    istate->evt.syscall->type = 3; // PPME_SYSCALL_OPEN_X
+    istate->evt.syscall->tid = 1;
+    istate->evt.syscall->ts = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    istate->evt.syscall->len = sizeof(ss_plugin_syscall_event);
+    istate->evt.syscall->nparams = 6;
 
     uint8_t* parambuf = &istate->evt_buf[0] + sizeof(ss_plugin_syscall_event);
 
@@ -227,7 +227,7 @@ int32_t plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_
     *((uint64_t*) parambuf) = 123;
     parambuf += sizeof(uint64_t);
 
-    istate->evt.evt.syscall->len += parambuf - (&istate->evt_buf[0] + sizeof(ss_plugin_syscall_event));
+    istate->evt.syscall->len += parambuf - (&istate->evt_buf[0] + sizeof(ss_plugin_syscall_event));
 	return SS_PLUGIN_SUCCESS;
 }
 
@@ -255,7 +255,7 @@ int32_t plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event *evt, uint32
                 ps->u64storage = 0;
                 for (int j = 0; j < sizeof(open_evts) / sizeof(uint16_t); j++)
                 {
-                    if (open_evts[j] == evt->evt.syscall->type)
+                    if (open_evts[j] == evt->syscall->type)
                     {
                         ps->u64storage = 1;
                     }
@@ -265,7 +265,7 @@ int32_t plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event *evt, uint32
                 break;
             case 1:
                 ps->u64storage = 0;
-                ps->tdatastorage.u64 = evt->evt.syscall->tid;
+                ps->tdatastorage.u64 = evt->syscall->tid;
                 evt_thread = table_read->get_entry(ps->thread_table, &ps->tdatastorage);
                 if (!evt_thread)
                 {
@@ -277,7 +277,7 @@ int32_t plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event *evt, uint32
                 break;
             case 2:
                 ps->u64storage = 0;
-                ps->tdatastorage.u64 = evt->evt.syscall->tid;
+                ps->tdatastorage.u64 = evt->syscall->tid;
                 evt_thread = table_read->get_entry(ps->thread_table, &ps->tdatastorage);
                 if (!evt_thread)
                 {
@@ -319,18 +319,18 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event *evt, cons
 {
     plugin_state *ps = (plugin_state *) s;
 
-    if (evt->evt.syscall->type == 390) // plugin metaevt
+    if (evt->syscall->type == 390) // plugin metaevt
     {
-        auto code = *((uint32_t*)(get_syscall_evt_param(evt->evt.syscall, 0)));
+        auto code = *((uint32_t*)(get_syscall_evt_param(evt->syscall, 0)));
         if (code == 1)
         {
-            auto msg = ((const char*)(get_syscall_evt_param(evt->evt.syscall, 2)));
+            auto msg = ((const char*)(get_syscall_evt_param(evt->syscall, 2)));
         }
     }
 
-    if (evt->evt.syscall->type == 306 || evt->evt.syscall->type == 307) // openat
+    if (evt->syscall->type == 306 || evt->syscall->type == 307) // openat
     {
-        ps->tdatastorage.u64 = evt->evt.syscall->tid;
+        ps->tdatastorage.u64 = evt->syscall->tid;
         auto evt_thread = table_read->get_entry(ps->thread_table, &ps->tdatastorage);
         if (!evt_thread)
         {
@@ -347,7 +347,7 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event *evt, cons
 }
 
 extern "C"
-ss_plugin_rc plugin_init_state_events(ss_plugin_t *s, ss_plugin_owner_t* o, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt))
+ss_plugin_rc plugin_init_state_events(ss_plugin_t *s, ss_plugin_owner_t* o, plugin_state_event_func push_evt)
 {
     plugin_state *ps = (plugin_state *) s;
     if (ps->async_thread.joinable())
