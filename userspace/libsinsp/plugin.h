@@ -29,6 +29,7 @@ limitations under the License.
 #include "version.h"
 #include "../plugin/plugin_loader.h"
 #include "state/table_registry.h"
+#include "events/sinsp_events.h"
 
 // todo(jasondellaluce: remove this forward declaration)
 class sinsp_filter_check;
@@ -89,13 +90,13 @@ class sinsp_plugin_cap_extraction: public sinsp_plugin_cap_common
 public:
 	virtual ~sinsp_plugin_cap_extraction() = default;
 
+	virtual const libsinsp::events::set<ppm_event_code>& extract_event_codes() const = 0;
+
 	virtual const std::set<std::string> &extract_event_sources() const = 0;
 
 	virtual bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const = 0;
 
 	virtual const std::vector<filtercheck_field_info>& fields() const = 0;
-
-	virtual bool is_source_compatible(const std::string &source) const = 0;
 };
 
 class sinsp_plugin_cap_state_management: public sinsp_plugin_cap_common
@@ -103,7 +104,11 @@ class sinsp_plugin_cap_state_management: public sinsp_plugin_cap_common
 public:
 	virtual ~sinsp_plugin_cap_state_management() = default;
 
-	virtual void parse_event(ss_plugin_event &evt) const = 0;
+	virtual const libsinsp::events::set<ppm_event_code>& parse_event_codes() const = 0;
+
+	virtual const std::set<std::string>& parse_event_sources() const = 0;
+
+	virtual bool parse_event(ss_plugin_event &evt) const = 0;
 };
 
 // Class that holds a plugin.
@@ -154,14 +159,21 @@ public:
 	virtual std::vector<sinsp_plugin_cap_sourcing::open_param> list_open_params() const override;
 
 	/** Field Extraction **/
+	virtual const libsinsp::events::set<ppm_event_code> &extract_event_codes() const override;
 	virtual const std::set<std::string> &extract_event_sources() const override;
 	virtual bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const override;
 	virtual const std::vector<filtercheck_field_info>& fields() const override;
-	virtual bool is_source_compatible(const std::string &source) const override;
 
 	/** State Management **/
-	// todo(jasondellaluce): collect errors
-	virtual void parse_event(ss_plugin_event &evt) const override;
+	virtual const libsinsp::events::set<ppm_event_code> &parse_event_codes() const override;
+	virtual const std::set<std::string> &parse_event_sources() const override;
+	virtual bool parse_event(ss_plugin_event &evt) const override;
+
+	/* Helpers */
+	static inline bool is_source_compatible(const std::set<std::string> &sources, const std::string& source)
+	{
+		return sources.empty() || sources.find(source) != sources.end();
+	}
 
 private:
 	std::string m_name;
@@ -182,11 +194,14 @@ private:
 	/** Field Extraction **/
 	std::vector<filtercheck_field_info> m_fields;
 	std::set<std::string> m_extract_event_sources;
+	libsinsp::events::set<ppm_event_code> m_extract_event_codes;
 
 	/** State management **/
 	struct table_input_deleter { void operator()(plugin_table_input* r); };
 	std::vector<ss_plugin_table_info> m_table_infos;
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
+	std::set<std::string> m_parse_event_sources;
+	libsinsp::events::set<ppm_event_code> m_parse_event_codes;
 	std::unordered_map<std::string, std::unique_ptr<plugin_table_input, table_input_deleter>> m_tables;
 	std::unordered_map<std::string, std::unique_ptr<libsinsp::state::base_table>> m_owned_tables;
 

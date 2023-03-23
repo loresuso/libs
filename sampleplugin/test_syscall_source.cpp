@@ -286,19 +286,32 @@ int32_t plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event *evt, uint32
 }
 
 extern "C"
+uint16_t* plugin_get_parse_event_types(uint32_t* num_types)
+{
+    static uint16_t types[] = {306, 307};
+    *num_types = sizeof(types) / sizeof(uint16_t);
+    return &types[0];
+}
+
+extern "C"
 ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event *evt, const plugin_table_read_api* table_read, const plugin_table_write_api* table_write)
 {
     plugin_state *ps = (plugin_state *) s;
 
-    ps->tdatastorage.u64 = evt->evt.syscall->tid;
-    auto evt_thread = table_read->get_entry(ps->thread_table, &ps->tdatastorage);
-    if (!evt_thread)
+    if (evt->evt.syscall->type == 306 || evt->evt.syscall->type == 307)
     {
-        return SS_PLUGIN_FAILURE;
-    }
+        ps->tdatastorage.u64 = evt->evt.syscall->tid;
+        auto evt_thread = table_read->get_entry(ps->thread_table, &ps->tdatastorage);
+        if (!evt_thread)
+        {
+            return SS_PLUGIN_FAILURE;
+        }
 
-    table_read->read_entry_field(ps->thread_table, evt_thread, ps->opencount_field, &ps->tdatastorage);
-    ps->tdatastorage.u64++;
-    table_write->write_entry_field(ps->thread_table, evt_thread, ps->opencount_field, &ps->tdatastorage);    
+        table_read->read_entry_field(ps->thread_table, evt_thread, ps->opencount_field, &ps->tdatastorage);
+        ps->tdatastorage.u64++;
+        table_write->write_entry_field(ps->thread_table, evt_thread, ps->opencount_field, &ps->tdatastorage);  
+
+        return SS_PLUGIN_SUCCESS; 
+    }
     return SS_PLUGIN_SUCCESS;
 }

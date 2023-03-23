@@ -105,9 +105,12 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     SYM_RESOLVE(ret, get_progress);
     SYM_RESOLVE(ret, list_open_params);
     SYM_RESOLVE(ret, event_to_string);
+    SYM_RESOLVE(ret, get_extract_event_types);
+    SYM_RESOLVE(ret, get_extract_event_sources);
     SYM_RESOLVE(ret, get_fields);
     SYM_RESOLVE(ret, extract_fields);
-    SYM_RESOLVE(ret, get_extract_event_sources);
+    SYM_RESOLVE(ret, get_parse_event_types);
+    SYM_RESOLVE(ret, get_parse_event_sources);
     SYM_RESOLVE(ret, parse_event);
     return ret;
 }

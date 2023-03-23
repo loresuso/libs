@@ -102,6 +102,7 @@ limitations under the License.
 
 #include "include/sinsp_external_processor.h"
 #include "plugin.h"
+#include "plugin_parser.h"
 #include "gvisor_config.h"
 class sinsp_partial_transaction;
 class sinsp_parser;
@@ -966,7 +967,7 @@ public:
 	// to by filepath, and add it to the inspector.
 	// The created sinsp_plugin is returned.
 	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath);
-	const sinsp_plugin_manager* get_plugin_manager();
+	std::shared_ptr<const sinsp_plugin_manager> get_plugin_manager();
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
@@ -1271,7 +1272,7 @@ public:
 	//
 	// Internal manager for plugins
 	//
-	sinsp_plugin_manager* m_plugin_manager;
+	std::shared_ptr<sinsp_plugin_manager> m_plugin_manager;
 	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
@@ -1295,6 +1296,8 @@ public:
 	//
 	// A registry for all the state tables owned by the inspector
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
+	//
+	std::vector<sinsp_plugin_parser> m_plugin_parsers; 
 
 	bool m_inited;
 	static std::atomic<int> instance_count;

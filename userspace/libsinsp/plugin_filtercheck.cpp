@@ -42,7 +42,7 @@ sinsp_filter_check_plugin::sinsp_filter_check_plugin(std::shared_ptr<sinsp_plugi
 	m_info.m_fields = &m_eplugin->fields()[0]; // we use a vector so this should be safe
 	m_info.m_nfields = m_eplugin->fields().size();
 	m_info.m_flags = filter_check_info::FL_NONE;
-	m_compatible_syscall_source = plugin->event_source() == "syscall";
+	m_compatible_syscall_source = sinsp_plugin::is_source_compatible(plugin->extract_event_sources(), "syscall");
 }
 
 sinsp_filter_check_plugin::sinsp_filter_check_plugin(const sinsp_filter_check_plugin &p)
@@ -127,6 +127,11 @@ sinsp_filter_check* sinsp_filter_check_plugin::allocate_new()
 
 bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
 {
+	if (!m_eplugin->extract_event_codes().contains((ppm_event_code) evt->get_type()))
+	{
+		return false;
+	}
+	
 	sinsp_evt_param *parinfo = nullptr;
 	uint32_t num_fields = 1;
 	ss_plugin_event pevt;
@@ -144,6 +149,11 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 	
 	if(evt->get_type() != PPME_PLUGINEVENT_E)
 	{
+		// the plugin is not compatible with the event's source
+		if (!m_compatible_syscall_source)
+		{
+			return false;
+		}
 		pevt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
 		efield.source = "syscall";
 	}
@@ -165,15 +175,14 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		}
 
 		// lazily populate the compatibility bitmap
-		while (m_compatible_plugin_sources_bitmap.size() < psource)
+		while (m_compatible_plugin_sources_bitmap.size() <= psource)
 		{
 			auto src_idx = m_compatible_plugin_sources_bitmap.size();
 			m_compatible_plugin_sources_bitmap.push_back(false);
 			const auto& sources = m_inspector->get_plugin_manager()->sources();
 			ASSERT(src_idx < sources.size());
 			const auto& source = sources[src_idx];
-			auto compatible = m_eplugin->extract_event_sources().empty()
-				|| m_eplugin->extract_event_sources().find(source) != m_eplugin->extract_event_sources().end();
+			auto compatible = sinsp_plugin::is_source_compatible(m_eplugin->extract_event_sources(), source);
 			m_compatible_plugin_sources_bitmap[src_idx] = compatible;
 		}
 

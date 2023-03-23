@@ -390,6 +390,10 @@ typedef struct
 	// Field extraction capability API
 	struct
 	{
+		// todo(jasondellaluce): write documentation for this
+		// Required: no
+		uint16_t* (*get_extract_event_types)(uint32_t* num_types);
+
 		//
 		// Return a string describing the event sources that this
 		// plugin can consume.
@@ -468,10 +472,19 @@ typedef struct
 	// State management capability API
 	struct
 	{
-		// todo(jasondellaluce): add an event type filter, and maybe
-		// use it for field extraction capability too
-		// todo(jasondellaluce): use "compatible_evt_sources" here as well
+		// todo(jasondellaluce): write documentation for this
+		// todo(jasondellaluce): if there is no use case for being compatible
+		// with some event sources for a capability only, maybe this would
+		// need to be merged with get_extract_event_types
+		// Required: no
+		uint16_t* (*get_parse_event_types)(uint32_t* num_types);
 
+		// todo(jasondellaluce): write documentation for this
+		// todo(jasondellaluce): if there is no use case for being compatible
+		// with some event sources for a capability only, maybe this would
+		// need to be merged with get_extract_event_sources
+		// Required: no
+		const char* (*get_parse_event_sources)();
 		//
 		// todo(jasondellaluce): write documentation for this
 		ss_plugin_rc (*parse_event)(ss_plugin_t *s, const ss_plugin_event *evt, const plugin_table_read_api* table_read, const plugin_table_write_api* table_write);

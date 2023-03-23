@@ -168,7 +168,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 	m_replay_scap_evt = NULL;
 
-	m_plugin_manager = new sinsp_plugin_manager();
+	m_plugin_manager = std::make_shared<sinsp_plugin_manager>();
 
 	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
 	m_table_registry->add_table(m_thread_manager->get_threads()->name(), m_thread_manager->get_threads());
@@ -204,12 +204,6 @@ sinsp::~sinsp()
 	if(m_meinfo.m_piscapevt)
 	{
 		delete[] m_meinfo.m_piscapevt;
-	}
-
-	if(m_plugin_manager)
-	{
-		delete m_plugin_manager;
-		m_plugin_manager = NULL;
 	}
 
 	m_container_manager.cleanup();
@@ -1442,30 +1436,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 #else
 	m_parser->process_event(evt);
-
-	// todo(jasondellaluce): put this logic in its own component
-	ss_plugin_event plugin_evt;
-	plugin_evt.evtnum = evt->get_num();
-	if (evt->get_type() == PPME_PLUGINEVENT_E)
+	for (auto& pparser : m_plugin_parsers)
 	{
-		auto plugin_parinfo = evt->get_param(1);
-		plugin_evt.evt.plugin.data = (uint8_t *) plugin_parinfo->m_val;
-		plugin_evt.evt.plugin.datalen = plugin_parinfo->m_len;
-		plugin_evt.evt.plugin.ts = evt->get_ts();
-	}
-	else
-	{
-		plugin_evt.evt.syscall = (ss_plugin_syscall_event*) evt->m_pevt;
-	}
-
-	for (const auto& p : get_plugin_manager()->plugins())
-	{
-		// todo(jasondellaluce): avoid looping on all plugins and pre-compute
-		// this set beforehand
-		if (p->caps() & CAP_STATE)
-		{
-			p->parse_event(plugin_evt);
-		}
+		pparser.process_event(evt);
 	}
 #endif
 
@@ -1736,6 +1709,10 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 	try
 	{
 		m_plugin_manager->add(plugin);
+		if (plugin->caps() & CAP_STATE)
+		{
+			m_plugin_parsers.push_back(sinsp_plugin_parser(get_plugin_manager(), plugin));
+		}
 	}
 	catch(sinsp_exception const& e)
 	{
@@ -1763,7 +1740,7 @@ void sinsp::set_input_plugin(const std::string& name, const std::string& params)
 	throw sinsp_exception("plugin " + name + " does not exist");
 }
 
-const sinsp_plugin_manager* sinsp::get_plugin_manager()
+std::shared_ptr<const sinsp_plugin_manager> sinsp::get_plugin_manager()
 {
 	return m_plugin_manager;
 }

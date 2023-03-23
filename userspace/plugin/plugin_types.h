@@ -118,6 +118,9 @@ typedef struct ss_plugin_event
 		// time
 		ss_plugin_syscall_event* syscall;
 	} evt;
+	// todo(jasondellaluce): consider adding the event source (index and string)
+	// here instead of in ss_plugin_extract_field, so that it's available for
+	// state parsing as well
 } ss_plugin_event;
 
 // Used in extract_fields functions below to receive a field/arg
