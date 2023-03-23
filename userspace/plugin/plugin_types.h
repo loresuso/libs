@@ -239,6 +239,7 @@ typedef enum ss_plugin_table_type
 	INT64,
     UINT64,
     STRING,
+	STRUCT,
 } ss_plugin_table_type;
 
 // Data representation of entry fields of state tables
@@ -261,6 +262,7 @@ typedef struct ss_plugin_table_fieldinfo
 {
     const char* name;
     ss_plugin_table_type field_type;
+	// todo(jasondellaluce): bool read_only;
 } ss_plugin_table_fieldinfo;
 
 #ifdef __cplusplus

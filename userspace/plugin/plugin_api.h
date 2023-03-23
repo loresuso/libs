@@ -47,11 +47,23 @@ extern "C" {
 // Vtable for controlling fields of entries of a state table
 typedef struct
 {
-    ss_plugin_table_fieldinfo* (*list_fields)(ss_plugin_table_t* t, uint32_t* nfields);
+	ss_plugin_table_fieldinfo* (*list_fields)(ss_plugin_table_t* t, uint32_t* nfields);
     ss_plugin_table_field_t* (*get_field)(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
+	// todo(jasondellaluce): add_field should be able to fail for non-dynamic struct types
     ss_plugin_table_field_t* (*add_field)(ss_plugin_table_t* t, const char* name, ss_plugin_table_type data_type);
+
+	// todo(jasondellaluce): future developments below (needed for file descriptors)
+	// will also need to support ss_plugin_table_entry_t as a new ss_plugin_table_data type.
+	// read/write operation will need to return an entry as their output
+	// todo(jasondellaluce): subfields work for structs, but what about array types?
+	//
+	// ss_plugin_table_fieldinfo* (*list_subfields)(ss_plugin_table_t* t, ss_plugin_table_fieldinfo* f, uint32_t* nfields);
+	// ss_plugin_table_field_t* (*get_subfield)(ss_plugin_table_t* t, ss_plugin_table_field_t* f, const char* name, ss_plugin_table_type data_type);
+	// ss_plugin_table_field_t* (*add_subfield)(ss_plugin_table_t* t, ss_plugin_table_field_t* f, const char* name, ss_plugin_table_type data_type);
 }
 plugin_table_field_api;
+
+// todo(jasondellaluce): support reading last error of the owner
 
 // Vtable for controlling a state table in read mode
 typedef struct
