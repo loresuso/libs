@@ -3259,6 +3259,7 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.reltime.ns", "Relative Time (ns)", "fractional part (in ns) of the time from the beginning of the capture."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "Plugin Name", "if the event comes from a plugin, the name of the plugin that generated it. The plugin must be currently loaded."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "Plugin Info", "if the event comes from a plugin, a summary of the event as formatted by the plugin. The plugin must be currently loaded."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.metatype", "Meta-Event Type", "The name of the meta-event (e.g. 'container')."},
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
@@ -3374,6 +3375,16 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 
 		RETURN_EXTRACT_STRING(m_strstorage);
+	case TYPE_METATYPE:
+		if (!libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
+		{
+			return NULL;
+		}
+		if (evt->get_type() == PPME_PLUGINMETAEVENT_E)
+		{
+			RETURN_EXTRACT_CSTR(evt->get_param(1)->m_val);
+		}
+		RETURN_EXTRACT_CSTR(evt->get_name());
 	default:
 		ASSERT(false);
 		return NULL;

@@ -1298,6 +1298,7 @@ public:
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 	//
 	std::vector<sinsp_plugin_parser> m_plugin_parsers; 
+	static void plugin_push_state_evt(ss_plugin_owner_t *o, const ss_plugin_state_event *evt);
 
 	bool m_inited;
 	static std::atomic<int> instance_count;

@@ -487,6 +487,12 @@ typedef struct
 		const char* (*get_parse_event_sources)();
 		//
 		// todo(jasondellaluce): write documentation for this
+		// note: this is thread safe and can be invoked asynchronously
+		// the event memory is owned by the plugin
+		// Required_no
+		ss_plugin_rc (*init_state_events)(ss_plugin_t *s, ss_plugin_owner_t* owner, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt));
+		//
+		// todo(jasondellaluce): write documentation for this
 		ss_plugin_rc (*parse_event)(ss_plugin_t *s, const ss_plugin_event *evt, const plugin_table_read_api* table_read, const plugin_table_write_api* table_write);
 	};
 } plugin_api;

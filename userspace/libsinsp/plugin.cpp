@@ -871,6 +871,58 @@ const libsinsp::events::set<ppm_event_code>& sinsp_plugin::extract_event_codes()
 
 /** State Management CAP **/
 
+std::unique_ptr<sinsp_evt> sinsp_plugin::state_evt_to_sinsp_evt(const ss_plugin_state_event *e)
+{
+	auto evt = new sinsp_evt();
+	// 3 lens, evt name, evt data
+	size_t totlen = sizeof(scap_evt)
+		+ 3 * sizeof(uint32_t) // PPME_PLUGINMETAEVENT_E is a large evt type
+		+ sizeof(uint32_t)
+		+ strlen(e->name) + 1
+		+ e->datalen;
+
+	ASSERT(evt->m_pevt_storage == nullptr);
+	evt->m_pevt_storage = new char[totlen];
+	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+
+	evt->m_cpuid = 0;
+	evt->m_evtnum = 0;
+
+	scap_evt* scapevt = evt->m_pevt;
+
+	scapevt->tid = -1;
+	scapevt->len = (uint32_t)totlen;
+	scapevt->type = PPME_PLUGINMETAEVENT_E;
+	scapevt->nparams = 3;
+
+	auto* lens = (uint32_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	auto* valptr = (uint8_t*) lens + scapevt->nparams * sizeof(uint32_t);
+
+	lens[0] = sizeof(uint32_t);
+	lens[1] = strlen(e->name) + 1;
+	lens[2] = e->datalen;
+
+	memcpy(valptr, &e->code, lens[0]);
+	valptr += lens[0];
+	memcpy(valptr, e->name, lens[1]);
+	valptr += lens[1];
+	memcpy(valptr, e->data, lens[2]);
+	valptr += lens[2];
+
+	evt->init();
+
+	return std::unique_ptr<sinsp_evt>(evt);
+}
+
+bool sinsp_plugin::init_state_events(ss_plugin_owner_t* owner, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt)) const
+{
+	if(!m_state || m_handle->api.init_state_events == NULL)
+	{
+		return false;
+	}
+	return m_handle->api.init_state_events(m_state, owner, push_evt) == SS_PLUGIN_SUCCESS;
+}
+
 const libsinsp::events::set<ppm_event_code>& sinsp_plugin::parse_event_codes() const
 {
 	return m_parse_event_codes;

@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <chrono>
 #include <thread>
+#include <atomic>
 #include <sstream>
 
 static const char* open_count_fname = "open-evt-count";
@@ -48,6 +49,8 @@ typedef struct plugin_state
     ss_plugin_table_field_t* procname_field;
     uint64_t u64storage;
     ss_plugin_table_data tdatastorage;
+    std::thread async_thread;
+    std::atomic<bool> async_thread_run;
 } plugin_state;
 
 typedef struct instance_state
@@ -151,6 +154,12 @@ extern "C"
 void plugin_destroy(ss_plugin_t* s)
 {
 	plugin_state *ps = (plugin_state *) s;
+
+    if (ps->async_thread_run && ps->async_thread.joinable())
+    {
+        ps->async_thread_run = false;
+        ps->async_thread.join();
+    }
 
 	delete(ps);
 }
@@ -288,9 +297,21 @@ int32_t plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event *evt, uint32
 extern "C"
 uint16_t* plugin_get_parse_event_types(uint32_t* num_types)
 {
-    static uint16_t types[] = {306, 307};
+    static uint16_t types[] = {306, 307, 390};
     *num_types = sizeof(types) / sizeof(uint16_t);
     return &types[0];
+}
+
+static inline void* get_syscall_evt_param(const ss_plugin_syscall_event* e, uint32_t i)
+{
+    uint32_t dataoffset = 0;
+    // todo(jasondellaluce): uint16_t this changes for large payloads
+    auto len = (uint32_t*) ((uint8_t*) e + sizeof(ss_plugin_syscall_event));
+    for (uint32_t j = 0; j < i; j++)
+    {
+        dataoffset += len[j];
+    }
+    return ((uint8_t*) &len[e->nparams]) + dataoffset;
 }
 
 extern "C"
@@ -298,7 +319,16 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event *evt, cons
 {
     plugin_state *ps = (plugin_state *) s;
 
-    if (evt->evt.syscall->type == 306 || evt->evt.syscall->type == 307)
+    if (evt->evt.syscall->type == 390) // plugin metaevt
+    {
+        auto code = *((uint32_t*)(get_syscall_evt_param(evt->evt.syscall, 0)));
+        if (code == 1)
+        {
+            auto msg = ((const char*)(get_syscall_evt_param(evt->evt.syscall, 2)));
+        }
+    }
+
+    if (evt->evt.syscall->type == 306 || evt->evt.syscall->type == 307) // openat
     {
         ps->tdatastorage.u64 = evt->evt.syscall->tid;
         auto evt_thread = table_read->get_entry(ps->thread_table, &ps->tdatastorage);
@@ -313,5 +343,35 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event *evt, cons
 
         return SS_PLUGIN_SUCCESS; 
     }
+    return SS_PLUGIN_SUCCESS;
+}
+
+extern "C"
+ss_plugin_rc plugin_init_state_events(ss_plugin_t *s, ss_plugin_owner_t* o, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt))
+{
+    plugin_state *ps = (plugin_state *) s;
+    if (ps->async_thread.joinable())
+    {
+        ps->async_thread.join();
+    }
+
+    ps->async_thread_run = true;
+    ps->async_thread = std::thread([ps, o, push_evt]()
+    {
+        uint32_t code = 1;
+        const char* name = "newmsg";
+        const char* data = "hello world";
+        ss_plugin_state_event evt;
+        while (ps->async_thread_run)
+        {
+            evt.code = code;
+            evt.name = name;
+            evt.data = (const uint8_t*) data;
+            evt.datalen = strlen(data) + 1;
+            push_evt(o, &evt);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+    });
+
     return SS_PLUGIN_SUCCESS;
 }

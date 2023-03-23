@@ -123,6 +123,16 @@ typedef struct ss_plugin_event
 	// state parsing as well
 } ss_plugin_event;
 
+
+// todo(jasondellaluce): add docs here
+typedef struct ss_plugin_state_event
+{
+	uint32_t code;
+	const char* name;
+	uint32_t datalen;
+	const uint8_t *data;
+} ss_plugin_state_event;
+
 // Used in extract_fields functions below to receive a field/arg
 // pair and return an extracted value.
 // field_id: id of the field, as of its index in the list of

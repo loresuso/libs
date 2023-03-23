@@ -444,6 +444,24 @@ void sinsp::set_import_users(bool import_users)
 
 /*=============================== OPEN METHODS ===============================*/
 
+void sinsp::plugin_push_state_evt(ss_plugin_owner_t *o, const ss_plugin_state_event *evt)
+{
+	// note: we make sure that state events are dequeued, however
+	// but then they are considered only during live captures, because
+	// offline captures will have the async events already encoded
+	// in the event stream.
+	auto i = static_cast<sinsp*>(o);
+	if (i->is_live() || i->is_plugin())
+	{
+		std::shared_ptr<sinsp_evt> e = sinsp_plugin::state_evt_to_sinsp_evt(evt);
+		e->inspector(i);
+		e->m_pevt->ts = (i->m_lastevent_ts == 0)
+			? sinsp_utils::get_current_time_ns()
+			: i->m_lastevent_ts;
+		i->m_pending_state_evts.push(e);
+	}
+}
+
 void sinsp::open_common(scap_open_args* oargs)
 {
 	g_logger.log("Trying to open the right engine!");
@@ -486,6 +504,11 @@ void sinsp::open_common(scap_open_args* oargs)
 	}
 
 	init();
+
+	for (auto& p : m_plugin_parsers)
+	{
+		p.plugin()->init_state_events(this, &sinsp::plugin_push_state_evt);
+	}
 }
 
 scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t scap_mode)

@@ -108,10 +108,15 @@ public:
 		return m_plugin->parse_event(m_evt);
 	}
 
+	inline std::shared_ptr<sinsp_plugin> plugin() const
+	{
+		return m_plugin;
+	}
+
 private:
 	ss_plugin_event m_evt;
 	bool m_compatible_syscall_source;
 	std::vector<bool> m_compatible_plugin_sources_bitmap;
 	std::shared_ptr<const sinsp_plugin_manager> m_manager;
-	std::shared_ptr<sinsp_plugin_cap_state_management> m_plugin;
+	std::shared_ptr<sinsp_plugin> m_plugin;
 };

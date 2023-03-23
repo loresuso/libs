@@ -104,6 +104,8 @@ class sinsp_plugin_cap_state_management: public sinsp_plugin_cap_common
 public:
 	virtual ~sinsp_plugin_cap_state_management() = default;
 
+	virtual bool init_state_events(ss_plugin_owner_t* owner, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt)) const = 0;
+
 	virtual const libsinsp::events::set<ppm_event_code>& parse_event_codes() const = 0;
 
 	virtual const std::set<std::string>& parse_event_sources() const = 0;
@@ -165,6 +167,7 @@ public:
 	virtual const std::vector<filtercheck_field_info>& fields() const override;
 
 	/** State Management **/
+	virtual bool init_state_events(ss_plugin_owner_t* owner, void (*push_evt)(ss_plugin_owner_t* o, const ss_plugin_state_event *evt)) const override;
 	virtual const libsinsp::events::set<ppm_event_code> &parse_event_codes() const override;
 	virtual const std::set<std::string> &parse_event_sources() const override;
 	virtual bool parse_event(ss_plugin_event &evt) const override;
@@ -174,6 +177,8 @@ public:
 	{
 		return sources.empty() || sources.find(source) != sources.end();
 	}
+
+	static std::unique_ptr<sinsp_evt> state_evt_to_sinsp_evt(const ss_plugin_state_event *evt);
 
 private:
 	std::string m_name;
