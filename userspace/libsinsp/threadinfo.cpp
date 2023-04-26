@@ -1382,6 +1382,7 @@ libsinsp::state::fixed_struct::field_info_list sinsp_threadinfo::fixed_fields() 
 	ret.add_info(this, m_comm, "comm");
 	ret.add_info(this, m_exe, "exe");
 	ret.add_info(this, m_exepath, "exepath");
+	ret.add_info(this, m_container_id, "containerid");
 	return ret;
 }
 
