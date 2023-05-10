@@ -228,6 +228,14 @@ bool sinsp_evt_formatter::get_field_values(gen_event *gevt, std::map<std::string
 	return resolve_tokens(evt, fields);
 }
 
+void sinsp_evt_formatter::get_field_names(std::vector<std::string> &fields)
+{
+	for(const auto &p : m_tokens)
+	{
+		fields.emplace_back(p.first);	
+	}
+}
+
 gen_event_formatter::output_format sinsp_evt_formatter::get_output_format()
 {
 	return m_output_format;
