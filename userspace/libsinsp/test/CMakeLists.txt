@@ -49,6 +49,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_compiler.ut.cpp
 	user.ut.cpp
 	container_info.ut.cpp
+	eventformatter.ut.cpp
 	"${PUBLIC_SINSP_API_SUITE}"
 	"${TABLE_SUITE}"
 )
