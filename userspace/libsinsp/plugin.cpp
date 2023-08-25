@@ -68,6 +68,32 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
+static sinsp_logger::severity plugin_sev_to_scap_sev(ss_plugin_log_severity sev)
+{
+	switch(sev)
+	{
+	case SS_PLUGIN_SEV_FATAL:
+		return sinsp_logger::severity::SEV_FATAL;
+	case SS_PLUGIN_SEV_CRITICAL:
+		return sinsp_logger::severity::SEV_CRITICAL;
+	case SS_PLUGIN_SEV_ERROR:
+		return sinsp_logger::severity::SEV_ERROR;
+	case SS_PLUGIN_SEV_WARNING:
+		return sinsp_logger::severity::SEV_WARNING;
+	case SS_PLUGIN_SEV_NOTICE:
+		return sinsp_logger::severity::SEV_NOTICE;
+	case SS_PLUGIN_SEV_INFO:
+		return sinsp_logger::severity::SEV_INFO;
+	case SS_PLUGIN_SEV_DEBUG:
+		return sinsp_logger::severity::SEV_DEBUG;
+	case SS_PLUGIN_SEV_TRACE:
+		return sinsp_logger::severity::SEV_TRACE;
+	default:
+		ASSERT(false);
+		return sinsp_logger::severity::SEV_FATAL;
+	}
+}
+
 const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 {
 	auto t = static_cast<sinsp_plugin*>(o);
@@ -76,6 +102,12 @@ const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 		return NULL;
 	}
 	return t->m_last_owner_err.c_str();
+}
+
+void sinsp_plugin::log(ss_plugin_owner_t *o, ss_plugin_log_severity sev, const char *msg)
+{
+	puts("log called");
+	g_logger.log(msg, plugin_sev_to_scap_sev(sev));
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
@@ -164,6 +196,7 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	ss_plugin_init_tables_input tables_in;
 	in.owner = this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	in.log = sinsp_plugin::log;
 	in.tables = NULL;
 	in.config = conf.c_str();
 	if (m_caps & (CAP_PARSING | CAP_EXTRACTION))

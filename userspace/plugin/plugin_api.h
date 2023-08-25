@@ -214,6 +214,12 @@ typedef struct ss_plugin_init_input
 	// capabilities. The callbacks available in this input take the plugin's owner
 	// as a parameter.
 	const ss_plugin_init_tables_input* tables;
+	//
+	// The plugin logging function. With this function, the plugin can log messages
+	// through the owner's logger.
+	// Note: for the moment, the libraries are using a global logger (g_logger).
+	void (*log)(ss_plugin_owner_t *o, ss_plugin_log_severity sev, const char *msg);
+
 } ss_plugin_init_input;
 
 // Input passed to the plugin when extracting a field from an event for

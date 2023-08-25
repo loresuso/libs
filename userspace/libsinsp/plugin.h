@@ -224,6 +224,9 @@ public:
 
 	bool set_async_event_handler(async_event_handler_t handler);
 
+	/** Logging **/
+	static void log(ss_plugin_owner_t *o, ss_plugin_log_severity sev, const char *msg);
+
 // note(jasondellaluce): we set these as protected in order to allow unit
 // testing mocking these values, without having to declare their accessors
 // as virtual (thus avoiding performance loss in some hot paths).
