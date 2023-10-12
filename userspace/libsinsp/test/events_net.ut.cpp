@@ -615,3 +615,43 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 	fdinfo = evt->get_fd_info();
 	ASSERT_EQ(fdinfo, nullptr);
 }
+
+#ifndef _WIN32
+TEST_F(sinsp_with_test_input, net_recvmsg_scm_rights)
+{
+	add_default_init_thread();
+	open_inspector(SCAP_MODE_LIVE);
+
+	auto tinfo = m_inspector.m_thread_manager->get_thread_ref(1, true);
+	ASSERT_NE(tinfo, nullptr);
+	uint64_t num_fds = 0;
+	auto count = [&num_fds](int64_t fd, const sinsp_fdinfo_t& fdinfo) {
+		num_fds++;
+		return true;
+	};
+
+	// Clear what we got from initial proc scan
+	tinfo->m_fdtable.clear();
+
+	sockaddr_un unix_socket = test_utils::fill_sockaddr_un("/tmp/test");
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&unix_socket), reinterpret_cast<sockaddr*>(&unix_socket));
+	char cmsg_buf[80];
+	struct cmsghdr* cmsg = (struct cmsghdr*)cmsg_buf;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+	cmsg->cmsg_type = SCM_RIGHTS;
+
+	// Create a socket where we can recv the message
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_UNIX, (uint32_t) SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 1);
+
+	// Trigger a proc scan for init process
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_RECVMSG_E, 1, 1);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_RECVMSG_X, 5, return_value, 5, scap_const_sized_buffer{"test", 5}, scap_const_sized_buffer{socktuple.data(), socktuple.size()}, scap_const_sized_buffer{cmsg_buf, sizeof(cmsg_buf)});
+
+	// Count the file descriptors again and check that there are some more
+	// We can't make too many assumptions on the exact number of file descriptors we'll find
+	tinfo = m_inspector.m_thread_manager->get_thread_ref(1);
+	tinfo->loop_fds(count);
+	ASSERT_GT(num_fds, 1);
+}
+#endif

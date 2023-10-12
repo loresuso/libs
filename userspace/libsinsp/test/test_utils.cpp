@@ -20,16 +20,13 @@ limitations under the License.
 
 #include <cstring>
 
-#if defined(__linux__)
-#include <linux/un.h>
-#else
-#if !defined(_WIN32)
+#ifndef _WIN32
 #include <sys/un.h>
-# endif //_WIN32
+#endif //_WIN32
+
 #ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
-#endif
-#endif
+#endif //UNIX_PATH_MAX
 
 #if !defined(_WIN32)
 #include <arpa/inet.h>
@@ -59,6 +56,15 @@ struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string
 	sockaddr.sin6_family = AF_INET6;
 	sockaddr.sin6_port = htons(ipv6_port);
 	inet_pton(AF_INET6, ipv6_string, &(sockaddr.sin6_addr));
+	return sockaddr;
+}
+
+struct sockaddr_un fill_sockaddr_un(const char* path)
+{
+	struct sockaddr_un sockaddr;
+	memset(&sockaddr, 0, sizeof(sockaddr));
+	sockaddr.sun_family = AF_UNIX;
+	strncpy(sockaddr.sun_path, path, sizeof(sockaddr.sun_path));
 	return sockaddr;
 }
 #endif //_WIN32

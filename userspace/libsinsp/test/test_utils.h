@@ -24,6 +24,7 @@ limitations under the License.
 #include <unordered_set>
 #if !defined(_WIN32)
 #include <netinet/in.h>
+#include <sys/un.h>
 #endif //_WIN32
 #include <event_stats.h>
 
@@ -90,8 +91,9 @@ template<typename T>
 std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
 
 #if !defined(_WIN32)
-struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string);
-struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string);
+sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string);
+sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string);
+sockaddr_un fill_sockaddr_un(const char* path);
 std::vector<uint8_t> pack_sockaddr(sockaddr *sa);
 std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
 #endif //_WIN32
