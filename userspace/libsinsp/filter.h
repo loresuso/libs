@@ -111,6 +111,7 @@ private:
 	void visit(const libsinsp::filter::ast::list_expr*) override;
 	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
+	void visit(const libsinsp::filter::ast::transformer_expr*) override;
 	cmpop str_to_cmpop(const std::string& str);
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
 	gen_event_filter_check* create_filtercheck(std::string& field);

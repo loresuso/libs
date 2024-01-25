@@ -182,6 +182,12 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         try_inversion(m_last_node_codes);
     }
 
+    void visit(const libsinsp::filter::ast::transformer_expr* e) override
+    {
+        // The child node is always a field, thus not adding info about
+        // the event types used, skipping.
+    }
+
 	void visit(const libsinsp::filter::ast::unary_check_expr* e) override
     {
         m_last_node_codes.clear();

@@ -224,6 +224,12 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	}
 }
 
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::transformer_expr* e)
+{
+	// todo: understand what we can do here to support transformers
+	// and convert to filtercheck representation.
+}
+
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e)
 {
 	m_pos = e->get_pos();

@@ -36,6 +36,7 @@ struct value_expr;
 struct list_expr;
 struct unary_check_expr;
 struct binary_check_expr;
+struct transformer_expr;
 
 /*!
 	\brief A struct containing info about the position of the parser
@@ -96,6 +97,7 @@ struct SINSP_PUBLIC expr_visitor
     virtual void visit(list_expr*) = 0;
     virtual void visit(unary_check_expr*) = 0;
     virtual void visit(binary_check_expr*) = 0;
+    virtual void visit(transformer_expr*) = 0;
 };
 
 /*!
@@ -111,6 +113,7 @@ struct SINSP_PUBLIC const_expr_visitor
     virtual void visit(const list_expr*) = 0;
     virtual void visit(const unary_check_expr*) = 0;
     virtual void visit(const binary_check_expr*) = 0;
+    virtual void visit(const transformer_expr*) = 0;
 };
 
 /*!
@@ -140,6 +143,7 @@ public:
     virtual void visit(list_expr*) override;
     virtual void visit(unary_check_expr*) override;
     virtual void visit(binary_check_expr*) override;
+    virtual void visit(transformer_expr*) override;
 
 private:
     bool m_should_stop_visit = false;
@@ -169,6 +173,7 @@ public:
     virtual void visit(const list_expr*) override;
     virtual void visit(const unary_check_expr*) override;
     virtual void visit(const binary_check_expr*) override;
+    virtual void visit(const transformer_expr*) override;
 
 private:
     bool m_should_stop_visit = false;
@@ -189,6 +194,7 @@ public:
 	virtual void visit(const list_expr*) override;
 	virtual void visit(const unary_check_expr*) override;
 	virtual void visit(const binary_check_expr*) override;
+    virtual void visit(const transformer_expr*) override;
 
 	const std::string& as_string();
 
@@ -503,6 +509,40 @@ struct SINSP_PUBLIC binary_check_expr: expr
         std::unique_ptr<binary_check_expr> ret(new binary_check_expr(f, a, o, v));
 	ret->set_pos(pos);
 	return ret;
+    }
+};
+
+struct SINSP_PUBLIC transformer_expr: expr
+{
+    transformer_expr() { }
+
+    explicit transformer_expr(const std::string& name, std::unique_ptr<expr> c): name(name), child(std::move(c)) { }
+
+    void accept(expr_visitor* v) override
+    {
+        v->visit(this);
+    };
+
+    void accept(const_expr_visitor* v) const override
+    {
+        v->visit(this);
+    };
+
+    bool is_equal(const expr* other) const override
+    {
+        auto o = dynamic_cast<const transformer_expr*>(other);
+        return o != nullptr && this->child->is_equal(o->child.get());
+    }
+
+    std::string name;
+    std::unique_ptr<expr> child;
+
+    static std::unique_ptr<transformer_expr> create(const std::string& name, std::unique_ptr<expr> c,
+					    const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
+    {
+        std::unique_ptr<transformer_expr> ret(new transformer_expr(name, std::move(c)));
+        ret->set_pos(pos);
+        return ret;
     }
 };
 

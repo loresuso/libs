@@ -515,6 +515,11 @@ public:
 		e->value->accept(this);
 	}
 
+	virtual void visit(transformer_expr* e) override
+	{
+		// todo: implement this
+	}
+
 	const std::string& as_string() {
 		return m_str;
 	};
@@ -748,5 +753,5 @@ TEST(parser, position_complex_multiline)
 
 TEST(parser, lore)
 {
-	test_accept("test.field contains pippo");
+	test_accept("tolower(test.field) contains pippo and test.field = 1");
 }

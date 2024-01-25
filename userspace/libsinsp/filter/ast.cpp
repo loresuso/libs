@@ -61,6 +61,14 @@ void base_expr_visitor::visit(binary_check_expr* e)
     }
 }
 
+void base_expr_visitor::visit(transformer_expr* e)
+{
+    if (!m_should_stop_visit)
+    {
+        e->child->accept(this);
+    }
+}
+
 void base_expr_visitor::visit(value_expr* e) { }
 
 void base_expr_visitor::visit(list_expr* e) { }
@@ -104,6 +112,14 @@ void const_base_expr_visitor::visit(const binary_check_expr* e)
     if (!m_should_stop_visit)
     {
         e->value->accept(this);
+    }
+}
+
+void const_base_expr_visitor::visit(const transformer_expr* e)
+{
+    if (!m_should_stop_visit)
+    {
+        e->child->accept(this);
     }
 }
 
@@ -213,6 +229,15 @@ void string_visitor::visit(const binary_check_expr* e)
 	e->value->accept(this);
 }
 
+void string_visitor::visit(const transformer_expr* e)
+{
+    m_str += e->name + "(";
+
+	e->child->accept(this);
+
+    m_str += ")";
+}
+
 const std::string& string_visitor::as_string()
 {
 	return m_str;
@@ -265,6 +290,12 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(const expr* e)
         {
             e->value->accept(this);
             m_last_node = binary_check_expr::create(e->field, e->arg, e->op, std::move(m_last_node), e->get_pos());
+        }
+
+        void visit(const transformer_expr* e) override
+        {
+            e->child->accept(this);
+            m_last_node = transformer_expr::create(e->name, std::move(m_last_node), e->get_pos());
         }
 
         void visit(const unary_check_expr* e) override

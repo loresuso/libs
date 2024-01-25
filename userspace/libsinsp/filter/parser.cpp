@@ -347,6 +347,7 @@ std::unique_ptr<ast::expr> parser::parse_check()
 	if (lex_identifier())
 	{
 		std::string transformer = m_last_token;
+		auto transformer_pos = get_pos();
 		if (lex_helper_str("("))
 		{
 			lex_blank();
@@ -371,6 +372,8 @@ std::unique_ptr<ast::expr> parser::parse_check()
 				}
 			}
 
+			auto field_expr = ast::value_expr::create(field, get_pos()); // todo: understand how to deal with the potential arg..
+
 			lex_blank();
 
 			if (!lex_helper_str(")"))
@@ -378,8 +381,7 @@ std::unique_ptr<ast::expr> parser::parse_check()
 				throw sinsp_exception("expected a ')' token");
 			}
 			
-			// return some ast with transformer and field ....
-			// can a value expr have another value as a child?
+			return ast::transformer_expr::create(transformer, std::move(field_expr), transformer_pos);
 		} 
 		
 		depth_pop();
