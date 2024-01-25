@@ -746,3 +746,7 @@ TEST(parser, position_complex_multiline)
 	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1and2 2 2binary2 2 2value16 2 16binary31 3 10list43 3 22not68 4 8unary72 4 12and95 5 8binary95 5 8value105 5 18binary123 6 12value132 6 21");
 }
 
+TEST(parser, lore)
+{
+	test_accept("test.field contains pippo");
+}

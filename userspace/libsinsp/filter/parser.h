@@ -38,6 +38,7 @@ namespace re2 { class RE2; };
 //     NotExprTail         ::= 'not(' Expr ')'
 //                             | Check
 //     Check               ::= CheckField CheckCondition
+//                             | FunctionHead FunctionTail
 //                             | Identifier
 //                             | '(' Expr ')'
 //     CheckCondition      ::= UnaryOperator
@@ -50,6 +51,12 @@ namespace re2 { class RE2; };
 //     FieldArg            ::= QuotedStr | FieldArgBareStr 
 //     NumValue            ::= HexNumber | Number
 //     StrValue            ::= QuotedStr | BareStr
+
+//     FunctionHead        ::= Identifier'('
+//     FunctionTail        ::= FunctionArg ')'
+//     FunctionArg         ::= Function
+//                             | CheckField
+//                             | Indentifier
 // 
 // Supported Check Operators (EBNF Syntax):
 //     UnaryOperator       ::= 'exists'

@@ -346,6 +346,42 @@ std::unique_ptr<ast::expr> parser::parse_check()
 
 	if (lex_identifier())
 	{
+		std::string transformer = m_last_token;
+		if (lex_helper_str("("))
+		{
+			lex_blank();
+
+			if (!lex_field_name())
+			{
+				throw sinsp_exception("expected a field name after '('");
+			}
+			
+			std::string field = m_last_token;
+			std::string field_arg = "";
+			if (lex_helper_str("["))
+			{
+				if (!lex_quoted_str() && !lex_field_arg_bare_str())
+				{
+					throw sinsp_exception("expected a valid field argument: a quoted string or a bare string");
+				}
+				field_arg = m_last_token;
+				if (!lex_helper_str("]"))
+				{
+					throw sinsp_exception("expected a ']' token");
+				}
+			}
+
+			lex_blank();
+
+			if (!lex_helper_str(")"))
+			{
+				throw sinsp_exception("expected a ')' token");
+			}
+			
+			// return some ast with transformer and field ....
+			// can a value expr have another value as a child?
+		} 
+		
 		depth_pop();
 		return ast::value_expr::create(m_last_token, pos);
 	}
