@@ -38,7 +38,7 @@ namespace re2 { class RE2; };
 //     NotExprTail         ::= 'not(' Expr ')'
 //                             | Check
 //     Check               ::= CheckField CheckCondition
-//                             | FunctionHead FunctionTail
+//                             | FunctionHead FunctionTail CheckCondition
 //                             | Identifier
 //                             | '(' Expr ')'
 //     CheckCondition      ::= UnaryOperator
@@ -52,11 +52,10 @@ namespace re2 { class RE2; };
 //     NumValue            ::= HexNumber | Number
 //     StrValue            ::= QuotedStr | BareStr
 
-//     FunctionHead        ::= Identifier'('
+//     FunctionHead        ::= Transformer'('
 //     FunctionTail        ::= FunctionArg ')'
-//     FunctionArg         ::= Function
+//     FunctionArg         ::= FunctionHead FunctionTail
 //                             | CheckField
-//                             | Indentifier
 // 
 // Supported Check Operators (EBNF Syntax):
 //     UnaryOperator       ::= 'exists'
@@ -73,6 +72,7 @@ namespace re2 { class RE2; };
 //     Number              ::= [+\-]?[0-9]+[\.]?[0-9]*([eE][+\-][0-9]+)?
 //     QuotedStr           ::= "(?:\\"|.)*?"|'(?:\\'|.)*?'
 //     BareStr             ::= [^ \b\t\n\r\(\),="']+
+//     Transformer         ::= 'tolower' | 'toupper' | 'tohex' | 'b64decode'
 //
 
 namespace libsinsp {
