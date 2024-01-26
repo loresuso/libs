@@ -507,8 +507,8 @@ struct SINSP_PUBLIC binary_check_expr: expr
 	const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
         std::unique_ptr<binary_check_expr> ret(new binary_check_expr(f, a, o, v));
-	ret->set_pos(pos);
-	return ret;
+        ret->set_pos(pos);
+        return ret;
     }
 };
 

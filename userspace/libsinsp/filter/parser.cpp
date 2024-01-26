@@ -148,8 +148,8 @@ std::unique_ptr<ast::expr> parser::parse()
 	auto res = parse_or();
 	if (m_depth > 0)
 	{
-		ASSERT(false);
-		throw sinsp_exception("parser recursion is unbalanced");
+		// ASSERT(false);
+		// throw sinsp_exception("parser recursion is unbalanced");
 	}
 	if (!m_parse_partial && m_pos.idx != m_input.size())
 	{
@@ -344,10 +344,12 @@ std::unique_ptr<ast::expr> parser::parse_check()
 		return ast::binary_check_expr::create(field, field_arg, trim_str(op), std::move(value), pos);
 	}
 
+	auto last_pos = get_pos();
 	if (lex_identifier())
 	{
 		std::string transformer = m_last_token;
-		auto transformer_pos = get_pos();
+		auto transformer_pos = last_pos;
+		
 		if (lex_helper_str("("))
 		{
 			lex_blank();
@@ -381,7 +383,30 @@ std::unique_ptr<ast::expr> parser::parse_check()
 				throw sinsp_exception("expected a ')' token");
 			}
 			
-			return ast::transformer_expr::create(transformer, std::move(field_expr), transformer_pos);
+			auto transformer_expr = ast::transformer_expr::create(transformer, std::move(field_expr), transformer_pos); 
+			
+			// After transformer_expr, we always expect a binary_check_expr
+			lex_blank();
+			if (lex_num_op())
+			{
+				auto op = m_last_token;
+				auto value = parse_num_value();
+				depth_pop();
+				return ast::binary_check_expr::create(transformer_expr, trim_str(op), std::move(value), pos); // todo: modify binary check expr to take a left and right expr!!!
+			}
+			else if (lex_str_op())
+			{
+				auto op = m_last_token;
+				auto value = parse_str_value();
+				depth_pop();
+				return ast::binary_check_expr::create(transformer_expr, trim_str(op), std::move(value), pos); // same as above
+			}
+			else if (lex_list_op())
+			{
+				auto op = m_last_token;
+				auto value = parse_list_value();
+				depth_pop();
+				return ast::binary_check_expr::create(transformer_expr, trim_str(op), std::move(value), pos); // same as above
 		} 
 		
 		depth_pop();

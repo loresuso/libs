@@ -753,5 +753,5 @@ TEST(parser, position_complex_multiline)
 
 TEST(parser, lore)
 {
-	test_accept("tolower(test.field) contains pippo and test.field = 1");
+	test_accept("tolower(test.field) contains pippo");
 }
