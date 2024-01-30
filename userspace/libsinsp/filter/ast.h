@@ -34,6 +34,9 @@ struct or_expr;
 struct not_expr;
 struct value_expr;
 struct list_expr;
+struct modifier_expr;
+struct field_expr;
+struct identifier_expr;
 struct unary_check_expr;
 struct binary_check_expr;
 
@@ -94,6 +97,9 @@ struct SINSP_PUBLIC expr_visitor
     virtual void visit(not_expr*) = 0;
     virtual void visit(value_expr*) = 0;
     virtual void visit(list_expr*) = 0;
+    virtual void visit(modifier_expr*) = 0;
+    virtual void visit(field_expr*) = 0;
+    virtual void visit(identifier_expr*) = 0;
     virtual void visit(unary_check_expr*) = 0;
     virtual void visit(binary_check_expr*) = 0;
 };
@@ -109,6 +115,9 @@ struct SINSP_PUBLIC const_expr_visitor
     virtual void visit(const not_expr*) = 0;
     virtual void visit(const value_expr*) = 0;
     virtual void visit(const list_expr*) = 0;
+    virtual void visit(const modifier_expr*) = 0;
+    virtual void visit(const field_expr*) = 0;
+    virtual void visit(const identifier_expr*) = 0;
     virtual void visit(const unary_check_expr*) = 0;
     virtual void visit(const binary_check_expr*) = 0;
 };
@@ -420,7 +429,90 @@ struct SINSP_PUBLIC list_expr: expr
     }
 };
 
-struct SINSP_PUBLIC unary_check_expr: expr
+struct SINSP_PUBLIC modifier_expr : expr
+{
+	modifier_expr() {}
+
+	explicit modifier_expr(const std::string& name, std::unique_ptr<expr> c): name(name), child(std::move(c)) {}
+
+	void accept(expr_visitor* v) override { v->visit(this); };
+
+	void accept(const_expr_visitor* v) const override { v->visit(this); };
+
+	bool is_equal(const expr* other) const override
+	{
+		auto o = dynamic_cast<const modifier_expr*>(other);
+		return o != nullptr && this->name == o->name && this->child->is_equal(o->child.get());
+	}
+
+	std::string name;
+	std::unique_ptr<expr> child;
+
+	static std::unique_ptr<modifier_expr> create(const std::string& name, std::unique_ptr<expr> c,
+						     const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
+	{
+		std::unique_ptr<modifier_expr> ret(new modifier_expr(name, std::move(c)));
+		ret->set_pos(pos);
+		return ret;
+	}
+};
+
+struct SINSP_PUBLIC field_expr : expr
+{
+	field_expr() {}
+
+	explicit field_expr(const std::string& name, const std::string& arg): name(name), arg(arg) {}
+
+	void accept(expr_visitor* v) override { v->visit(this); };
+
+	void accept(const_expr_visitor* v) const override { v->visit(this); };
+
+	bool is_equal(const expr* other) const override
+	{
+		auto o = dynamic_cast<const field_expr*>(other);
+		return o != nullptr && name == o->name && arg == o->arg;
+	}
+
+	std::string name;
+    std::string arg;
+
+	static std::unique_ptr<field_expr> create(const std::string& name, const std::string& arg,
+						  const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
+	{
+		std::unique_ptr<field_expr> ret(new field_expr(name, arg));
+		ret->set_pos(pos);
+		return ret;
+	}
+};
+
+struct SINSP_PUBLIC identifier_expr : expr
+{
+    identifier_expr() {}
+
+    explicit identifier_expr(const std::string& name): name(name) {}
+
+    void accept(expr_visitor* v) override { v->visit(this); };
+
+    void accept(const_expr_visitor* v) const override { v->visit(this); };
+
+    bool is_equal(const expr* other) const override
+    {
+        auto o = dynamic_cast<const identifier_expr*>(other);
+        return o != nullptr && name == o->name;
+    }
+
+    std::string name;
+
+    static std::unique_ptr<identifier_expr> create(const std::string& name,
+                           const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
+    {
+        std::unique_ptr<identifier_expr> ret(new identifier_expr(name));
+        ret->set_pos(pos);
+        return ret;
+    }
+};
+
+struct SINSP_PUBLIC unary_check_expr : expr
 {
     unary_check_expr() { }
 
@@ -466,10 +558,9 @@ struct SINSP_PUBLIC binary_check_expr: expr
     binary_check_expr() { }
 
     binary_check_expr(
-        const std::string& f,
-        const std::string& a,
+        std::unique_ptr<expr> &l,
         const std::string& o,
-        std::unique_ptr<expr> &v): field(f), arg(a), op(o), value(std::move(v)) { }
+        std::unique_ptr<expr> &r): left(std::move(l)), op(o), right(std::move(r)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -484,25 +575,23 @@ struct SINSP_PUBLIC binary_check_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const binary_check_expr*>(other);
-        return o != nullptr && field == o->field
-            && arg == o->arg && op == o->op && value->is_equal(o->value.get());
+        return o != nullptr && 
+            left->is_equal(o->left.get()) && op == o->op && right->is_equal(o->right.get());
     }
 
-    std::string field;
-    std::string arg;
+    std::unique_ptr<expr> left;
     std::string op;
-    std::unique_ptr<expr> value;
+    std::unique_ptr<expr> right;
 
     static std::unique_ptr<binary_check_expr> create(
-        const std::string& f,
-        const std::string& a,
+        std::unique_ptr<expr> l,
         const std::string& o,
-        std::unique_ptr<expr> v,
+        std::unique_ptr<expr> r,
 	const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        std::unique_ptr<binary_check_expr> ret(new binary_check_expr(f, a, o, v));
-	ret->set_pos(pos);
-	return ret;
+        std::unique_ptr<binary_check_expr> ret(new binary_check_expr(l, o, r));
+	    ret->set_pos(pos);
+	    return ret;
     }
 };
 

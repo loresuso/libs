@@ -134,8 +134,9 @@ private:
 	std::unique_ptr<ast::expr> parse_check();
 	std::unique_ptr<ast::expr> parse_check_field(libsinsp::filter::ast::pos_info& pos);
 	void parse_check_field_arg(std::string& field_arg);
-	std::unique_ptr<ast::expr> parse_check_condition(const std::string& field, const std::string& field_arg,
+	std::unique_ptr<ast::expr> parse_check_condition(std::unique_ptr<ast::expr> left,
 							 libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_modifier(const std::string& modifier, libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_list_value();
 	std::unique_ptr<ast::value_expr> parse_num_value();
 	std::unique_ptr<ast::value_expr> parse_str_value();
@@ -151,6 +152,7 @@ private:
 	bool lex_num_op();
 	bool lex_str_op();
 	bool lex_list_op();
+	bool lex_modifier();
 	bool lex_helper_rgx(const re2::RE2& rgx);
 	bool lex_helper_str(const std::string& str);
 	bool lex_helper_str_list(const std::vector<std::string>& list);

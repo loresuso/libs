@@ -69,6 +69,11 @@ static const vector<string> binary_list_ops =
 	"intersects", "in", "pmatch"
 };
 
+static const vector<string> modifiers =
+{
+	"tolower", "toupper", "tohex", "b64decode"
+};
+
 static inline void update_pos(const char c, ast::pos_info& pos)
 {
 	pos.col++;
@@ -293,19 +298,48 @@ std::unique_ptr<ast::expr> parser::parse_check()
 		return parse_check_field(pos);
 	}
 
+	if (lex_modifier())
+	{
+		std::string modifier = m_last_token;
+		if (!lex_helper_str("("))
+		{
+			throw sinsp_exception("expected a '(' token after '" + m_last_token + "' modifier");
+		}
+		
+		auto left = parse_modifier(modifier, pos);
+		
+		if(!lex_helper_str(")"))
+		{
+			throw sinsp_exception("expected a ')' token closing the modifier expression after '" +
+					      modifier + "'");
+		}
+
+		return parse_check_condition(std::move(left), pos);
+	}
+
 	if (lex_identifier())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token, pos);
+		return ast::identifier_expr::create(m_last_token, pos);
 	}
 
-	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
+	throw sinsp_exception("expected a '(' token, a modifier, a field check, or an identifier");
 }
 
 std::unique_ptr<ast::expr> parser::parse_check_field(libsinsp::filter::ast::pos_info& pos)
 {
 	string field = m_last_token;
 	string field_arg = "";
+
+	// if (lex_modifier())
+	// {
+	// 	std::string modifier = m_last_token;
+	// 	if (!lex_helper_str("("))
+	// 	{
+	// 		throw sinsp_exception("expected a '(' token after '" + m_last_token + "' modifier");
+	// 	}
+	// 	return parse_modifier(m_last_token, pos);
+	// }
 
 	if(lex_helper_str("["))
 	{
@@ -314,7 +348,8 @@ std::unique_ptr<ast::expr> parser::parse_check_field(libsinsp::filter::ast::pos_
 
 	lex_blank();
 
-	return parse_check_condition(field, field_arg, pos);
+	auto field = ast::field_expr::create(trim_str(field), trim_str(field_arg), pos);
+	return parse_check_condition(std::move(field), pos);
 }
 
 
@@ -333,34 +368,39 @@ void parser::parse_check_field_arg(std::string& field_arg)
 	}
 }
 
-std::unique_ptr<ast::expr> parser::parse_check_condition(const std::string& field, const std::string& field_arg,
+std::unique_ptr<ast::expr> parser::parse_check_condition(std::unique_ptr<ast::expr> left,
 							 libsinsp::filter::ast::pos_info& pos)
 {
 	if(lex_unary_op())
 	{
 		depth_pop();
-		return ast::unary_check_expr::create(field, field_arg, trim_str(m_last_token), pos);
+		auto l = dynamic_cast<ast::field_expr*>(left.get()); // todo: think about it
+		if (l == nullptr)
+		{
+			throw sinsp_exception("expected a field name before '" + m_last_token + "'");
+		}
+		return ast::unary_check_expr::create(l->name, l->arg, trim_str(m_last_token), pos);
 	}
 
 	string op = "";
-	std::unique_ptr<ast::expr> value;
+	std::unique_ptr<ast::expr> right;
 
 	lex_blank();
 
 	if(lex_num_op())
 	{
 		op = m_last_token;
-		value = parse_num_value();
+		right = parse_num_value();
 	}
 	else if(lex_str_op())
 	{
 		op = m_last_token;
-		value = parse_str_value();
+		right = parse_str_value();
 	}
 	else if(lex_list_op())
 	{
 		op = m_last_token;
-		value = parse_list_value();
+		right = parse_list_value();
 	}
 	else
 	{
@@ -375,7 +415,42 @@ std::unique_ptr<ast::expr> parser::parse_check_condition(const std::string& fiel
 
 	depth_pop();
 
-	return ast::binary_check_expr::create(field, field_arg, trim_str(op), std::move(value), pos);
+	return ast::binary_check_expr::create(std::move(left), trim_str(op), std::move(right), pos);
+}
+
+std::unique_ptr<ast::expr> parser::parse_modifier(const std::string& modifier, libsinsp::filter::ast::pos_info& pos)
+{
+	std::unique_ptr<ast::expr> expr;
+
+	if (lex_modifier())
+	{
+		if (!lex_helper_str("("))
+		{
+			throw sinsp_exception("expected a '(' token after '" + m_last_token + "' modifier");
+		}
+
+		expr = ast::modifier_expr::create(trim_str(modifier), parse_modifier(m_last_token, pos), pos);
+
+		if(!lex_helper_str(")"))
+		{
+			throw sinsp_exception("expected a ')' token closing the modifier expression after '" +
+					      modifier + "'");
+		}
+
+		return expr;
+	} else if (lex_field_name())
+	{
+		expr = parse_check_field(pos);
+
+		if(!lex_helper_str(")"))
+		{
+			throw sinsp_exception("expected a ')' token closing the modifier expression after '" + modifier + "'");
+		}
+
+		return ast::modifier_expr::create(trim_str(modifier), std::move(expr), pos);
+	} 
+	
+	throw sinsp_exception("expected a field name or a modifier after '" + modifier + "'");
 }
 
 std::unique_ptr<ast::value_expr> parser::parse_num_value()
@@ -455,7 +530,7 @@ std::unique_ptr<ast::expr> parser::parse_list_value()
 	if (lex_identifier())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token, pos);
+		return ast::identifier_expr::create(m_last_token, pos);
 	}
 
 	throw sinsp_exception("expected a list or an identifier");
@@ -548,6 +623,11 @@ inline bool parser::lex_str_op()
 inline bool parser::lex_list_op()
 {
 	return lex_helper_str_list(binary_list_ops);
+}
+
+inline bool parser::lex_modifier()
+{
+	return lex_helper_str_list(modifiers);
 }
 
 bool parser::lex_helper_rgx(const re2::RE2& rgx)
