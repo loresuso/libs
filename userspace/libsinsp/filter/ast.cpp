@@ -164,6 +164,11 @@ void string_visitor::visit(const value_expr* e)
 	escape_next_value = false;
 }
 
+void string_visitor::visit(const identifier_expr* e)
+{
+	m_str += e->name;
+}
+
 void string_visitor::visit(const list_expr* e)
 {
 	bool first = true;
@@ -275,6 +280,11 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(const expr* e)
         void visit(const value_expr* e) override
         {
             m_last_node = value_expr::create(e->value, e->get_pos());
+        }
+
+        void visit(const identifier_expr* e) override
+        {
+            m_last_node = identifier_expr::create(e->name, e->get_pos());
         }
 
         void visit(const list_expr* e) override

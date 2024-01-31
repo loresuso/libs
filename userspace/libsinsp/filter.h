@@ -108,6 +108,7 @@ private:
 	void visit(const libsinsp::filter::ast::or_expr*) override;
 	void visit(const libsinsp::filter::ast::not_expr*) override;
 	void visit(const libsinsp::filter::ast::value_expr*) override;
+	void visit(const libsinsp::filter::ast::identifier_expr*) override;
 	void visit(const libsinsp::filter::ast::list_expr*) override;
 	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;

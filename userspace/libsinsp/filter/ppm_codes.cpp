@@ -198,13 +198,14 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         {
             m_last_node_codes = names_to_codes({e->value});
         }
-        else
-        {
-            // this case only happens if a macro has not yet been substituted
-            // with an actual condition. Should not happen, but we handle it
-            // for consistency.
-            m_last_node_codes = all_codes_set();
-        }
+        try_inversion(m_last_node_codes);
+    }
+
+    void visit(const libsinsp::filter::ast::identifier_expr* e) override
+    {
+        // todo:
+        m_last_node_codes.clear();
+        m_last_node_codes = all_codes_set();
         try_inversion(m_last_node_codes);
     }
 

@@ -296,7 +296,7 @@ std::unique_ptr<ast::expr> parser::parse_check()
 	if (lex_identifier())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token, pos);
+		return ast::identifier_expr::create(m_last_token, pos);
 	}
 
 	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
@@ -455,7 +455,7 @@ std::unique_ptr<ast::expr> parser::parse_list_value()
 	if (lex_identifier())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token, pos);
+		return ast::identifier_expr::create(m_last_token, pos);
 	}
 
 	throw sinsp_exception("expected a list or an identifier");

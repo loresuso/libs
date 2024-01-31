@@ -33,6 +33,7 @@ struct and_expr;
 struct or_expr;
 struct not_expr;
 struct value_expr;
+struct identifier_expr;
 struct list_expr;
 struct unary_check_expr;
 struct binary_check_expr;
@@ -93,6 +94,7 @@ struct SINSP_PUBLIC expr_visitor
     virtual void visit(or_expr*) = 0;
     virtual void visit(not_expr*) = 0;
     virtual void visit(value_expr*) = 0;
+    virtual void visit(identifier_expr*) = 0;
     virtual void visit(list_expr*) = 0;
     virtual void visit(unary_check_expr*) = 0;
     virtual void visit(binary_check_expr*) = 0;
@@ -108,6 +110,7 @@ struct SINSP_PUBLIC const_expr_visitor
     virtual void visit(const or_expr*) = 0;
     virtual void visit(const not_expr*) = 0;
     virtual void visit(const value_expr*) = 0;
+    virtual void visit(const identifier_expr*) = 0;
     virtual void visit(const list_expr*) = 0;
     virtual void visit(const unary_check_expr*) = 0;
     virtual void visit(const binary_check_expr*) = 0;
@@ -186,6 +189,7 @@ public:
 	virtual void visit(const or_expr*) override;
 	virtual void visit(const not_expr*) override;
 	virtual void visit(const value_expr*) override;
+    virtual void visit(const identifier_expr*) override;
 	virtual void visit(const list_expr*) override;
 	virtual void visit(const unary_check_expr*) override;
 	virtual void visit(const binary_check_expr*) override;
@@ -384,6 +388,39 @@ struct SINSP_PUBLIC value_expr: expr
         std::unique_ptr<value_expr> ret(new value_expr(v));
 	ret->set_pos(pos);
 	return ret;
+    }
+};
+
+struct SINSP_PUBLIC identifier_expr: expr
+{
+    identifier_expr() { }
+
+    explicit identifier_expr(const std::string& n): name(n) { }
+
+    void accept(expr_visitor* v) override
+    {
+        v->visit(this);
+    };
+
+    void accept(const_expr_visitor* v) const override
+    {
+        v->visit(this);
+    };
+
+    bool is_equal(const expr* other) const override
+    {
+        auto o = dynamic_cast<const identifier_expr*>(other);
+        return o != nullptr && name == o->name;
+    }
+
+    std::string name;
+
+    static std::unique_ptr<identifier_expr> create(const std::string& n,
+					      const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
+    {
+	    std::unique_ptr<identifier_expr> ret(new identifier_expr(n));
+	    ret->set_pos(pos);
+	    return ret;
     }
 };
 

@@ -460,7 +460,7 @@ TEST(parser, expr_multi_negation)
 		ast.get()
 	);
 
-	ast = not_expr::create(not_expr::create(value_expr::create("not_macro")));
+	ast = not_expr::create(not_expr::create(identifier_expr::create("not_macro")));
 
 	test_equal_ast(
 		"not not not not not(not not(not not_macro))",
@@ -492,6 +492,12 @@ public:
 	virtual void visit(value_expr* e) override
 	{
 		m_str += "value";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(identifier_expr* e) override
+	{
+		m_str += "identifier";
 		add_pos(e->get_pos());
 	}
 

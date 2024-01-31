@@ -227,14 +227,18 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e)
 {
 	m_pos = e->get_pos();
+	m_field_values.clear();
+	m_field_values.push_back(e->value);
+}
+
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::identifier_expr* e)
+{
 	if (!m_expect_values)
 	{
 		// this ensures that identifiers, such as Falco macros, are not left
 		// unresolved at filter compilation time
-		throw sinsp_exception("filter error: unexpected identifier '" + e->value + "'");
+		throw sinsp_exception("filter error: unexpected identifier '" + e->name + "'");
 	}
-	m_field_values.clear();
-	m_field_values.push_back(e->value);
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::list_expr* e)
