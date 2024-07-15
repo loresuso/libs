@@ -62,6 +62,11 @@ int BPF_PROG(setns_x,
 	/* Parameter 1: res (type: PT_FD)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: mntns (type: PT_UINT32) */
+	struct task_struct *task = get_current_task();
+	uint32_t *mntns;
+	READ_TASK_FIELD_INTO(&mntns, task, nsproxy, mnt_ns, ns, inum);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
