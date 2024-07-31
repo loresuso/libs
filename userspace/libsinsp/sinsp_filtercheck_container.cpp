@@ -58,6 +58,9 @@ static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's / pod's primary ip address as retrieved from the container engine. Only ipv4 addresses are tracked. Consider container.cni.json (CRI use case) for logging ip addresses for each network interface. In instances of userspace container engine lookup delays, this field may not be available yet."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.cni.json", "Container's / pod's CNI result json", "The container's / pod's CNI result field from the respective pod status info. It contains ip addresses for each network interface exposed as unparsed escaped JSON string. Supported for CRI container engine (containerd, cri-o runtimes), optimized for containerd (some non-critical JSON keys removed). Useful for tracking ips (ipv4 and ipv6, dual-stack support) for each network interface (multi-interface support). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.host_pid", "Host PID Namespace", "'true' if the process is running in the host PID namespace, 'false' otherwise."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.host_network", "Host Network Namespace", "'true' if the process is running in the host network namespace, 'false' otherwise."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.host_ipc", "Host IPC Namespace", "'true' if the process is running in the host IPC namespace, 'false' otherwise."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -188,6 +191,11 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, uint32_t* 
 	if(!tinfo->m_container_id.empty())
 	{
 		container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+	}
+
+	if(container_info->m_host_pid)
+	{
+		puts("******************* host pid");
 	}
 
 	switch(m_field_id)
@@ -378,6 +386,31 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, uint32_t* 
 			}
 
 			m_val.u32 = (container_info->m_privileged ? 1 : 0);
+		}
+
+		RETURN_EXTRACT_VAR(m_val.u32);
+		break;
+	case TYPE_CONTAINER_HOST_PID:
+		if (tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else 
+		{
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			// Only return a true/false value for
+			// container types where we really know the
+			// host_pid status. // todo(loresuso): double check this
+			if (!is_docker_compatible(container_info->m_type))
+			{
+				return NULL;
+			}
+
+			m_val.u32 = (container_info->m_host_pid ? 1 : 0);
 		}
 
 		RETURN_EXTRACT_VAR(m_val.u32);
