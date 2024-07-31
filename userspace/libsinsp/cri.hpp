@@ -518,6 +518,8 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 		return false;
 	}
 
+	puts(root.toStyledString().c_str());
+
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(root, &linux, "runtimeSpec", "linux") || !linux->isObject())
 	{
@@ -542,6 +544,11 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 
 	bool priv_found = false;
 	const Json::Value *privileged = nullptr;
+
+	//
+	// Privileged flag
+	//
+
 	// old containerd?
 	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
 	{
@@ -563,6 +570,16 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 		container.m_privileged = privileged->asBool();
 		priv_found = true;
 	}
+
+	//
+	// Host pid, network and IPC namespaces
+	//
+
+	bool host_pid_found = false;
+	const Json::Value *host_pid = nullptr;
+
+
+	// todo(loresuso): check where to take the namespace from when the runtime is cri-o
 
 	return true;
 }
