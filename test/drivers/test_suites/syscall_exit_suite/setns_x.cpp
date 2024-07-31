@@ -34,6 +34,8 @@ TEST(SyscallExit, setnsX)
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: mntns (type: PT_UINT32) */
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(1);
