@@ -54,6 +54,17 @@ int BPF_PROG(setns_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_FD)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
+	struct task_struct *task = get_current_task();
+	struct nsproxy *nsproxy = get_nsproxy_from_task(task);
+
+	/* Parameter 2: mntns (type: PT_UINT32) */
+	uint32_t mntns = extract__mnt_ns_id_from_nsproxy(nsproxy);
+	ringbuf__store_u32(&ringbuf, mntns);
+
+	/* Parameter 3: netns (type: PT_UINT32) */
+	uint32_t netns = extract__net_ns_id_from_nsproxy(nsproxy);
+	ringbuf__store_u32(&ringbuf, 0);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

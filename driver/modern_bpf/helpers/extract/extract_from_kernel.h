@@ -441,6 +441,24 @@ static __always_inline struct pid_namespace *extract__namespace_of_pid(struct pi
 	return ns;
 }
 
+static __always_inline uint32_t extract__mnt_ns_id_from_nsproxy(struct nsproxy *nsproxy) {
+	uint32_t mnt_ns_id = 0;
+	BPF_CORE_READ_INTO(&mnt_ns_id, nsproxy, mnt_ns, ns.inum);
+	return mnt_ns_id;
+}
+
+static __always_inline uint32_t extract__net_ns_id_from_nsproxy(struct nsproxy *nsproxy) {
+	uint32_t net_ns_id = 0;
+	BPF_CORE_READ_INTO(&net_ns_id, nsproxy, net_ns, ns.inum);
+	return net_ns_id;
+}
+
+static __always_inline struct nsproxy *get_nsproxy_from_task(struct task_struct *task) {
+	struct nsproxy *nsproxy;
+	READ_TASK_FIELD_INTO(&nsproxy, task, nsproxy);
+	return nsproxy;
+}
+
 /**
  * @brief extract the `xid` (where x can be 'p', 't', ...) according to the
  * `pid struct` passed as parameter.
